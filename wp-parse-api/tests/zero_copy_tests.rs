@@ -35,7 +35,7 @@ fn test_to_bytes_conversion() {
 
 #[test]
 fn test_zero_copy_detection() {
-    let string_data = RawData::from_str("test string");
+    let string_data = RawData::from_string("test string");
     let bytes_data = RawData::Bytes(Bytes::from("test bytes"));
     let arc_data = RawData::from_arc_bytes(Arc::new(b"test arc".to_vec()));
 

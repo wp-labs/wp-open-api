@@ -86,6 +86,7 @@ impl AcceptorHandle {
 }
 
 /// SourceFactory::build 的统一返回结构。
+#[derive(Default)]
 pub struct SourceSvcIns {
     pub sources: Vec<SourceHandle>,
     pub acceptor: Option<AcceptorHandle>,
@@ -124,15 +125,6 @@ impl SourceSvcIns {
     pub fn with_acceptor(mut self, acceptor: AcceptorHandle) -> Self {
         self.acceptor = Some(acceptor);
         self
-    }
-}
-
-impl Default for SourceSvcIns {
-    fn default() -> Self {
-        Self {
-            sources: Vec::new(),
-            acceptor: None,
-        }
     }
 }
 

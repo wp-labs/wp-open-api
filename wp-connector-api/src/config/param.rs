@@ -49,7 +49,7 @@ mod tests {
         let mut table = Table::new();
         table.insert("string".into(), Value::String("warp".into()));
         table.insert("int".into(), Value::Integer(42));
-        table.insert("float".into(), Value::Float(3.14));
+        table.insert("float".into(), Value::Float(3.10));
         table.insert("bool".into(), Value::Boolean(true));
         table.insert(
             "datetime".into(),
@@ -71,7 +71,7 @@ mod tests {
         let mut expected = BTreeMap::new();
         expected.insert("string".into(), json!("warp"));
         expected.insert("int".into(), json!(42));
-        expected.insert("float".into(), json!(3.14));
+        expected.insert("float".into(), json!(3.10));
         expected.insert("bool".into(), json!(true));
         expected.insert("datetime".into(), json!("2024-05-19T10:15:30Z"));
         expected.insert("array".into(), json!([1, false]));

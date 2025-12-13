@@ -28,7 +28,7 @@ pub enum RawData {
 }
 
 impl RawData {
-    pub fn from_str<T: Into<String>>(value: T) -> RawData {
+    pub fn from_string<T: Into<String>>(value: T) -> RawData {
         RawData::String(value.into())
     }
 
@@ -136,7 +136,7 @@ mod tests {
 
     #[test]
     fn rawdata_as_bytes_and_len_cover_all_variants() {
-        let text = RawData::from_str("hello");
+        let text = RawData::from_string("hello");
         assert_eq!(text.as_bytes(), b"hello");
         assert_eq!(text.len(), 5);
         assert!(!text.is_zero_copy());
@@ -162,9 +162,9 @@ mod tests {
 
     #[test]
     fn rawdata_is_empty_handles_all_variants() {
-        assert!(RawData::from_str("").is_empty());
+        assert!(RawData::from_string("").is_empty());
         assert!(RawData::Bytes(Bytes::new()).is_empty());
         assert!(RawData::from_arc_bytes(Arc::new(vec![])).is_empty());
-        assert!(!RawData::from_str("x").is_empty());
+        assert!(!RawData::from_string("x").is_empty());
     }
 }
