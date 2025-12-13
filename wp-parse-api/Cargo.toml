@@ -1,0 +1,19 @@
+[package]
+name = "wp-parse-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Note: We still need wpl for some types like WplParseError, but RawData and DataResult will be defined here
+bytes = { workspace = true }
+wp_data_model = { package = "wp-model-core", path = "../wp-model-core" }
+thiserror = "~1.0"
+orion-error= "0.5.5"
+derive_more = "2.0"
+
+serde_derive = "~1.0"
+serde = "~1.0"
+[lib]
+name = "wp_parse_api"
+path = "src/lib.rs"

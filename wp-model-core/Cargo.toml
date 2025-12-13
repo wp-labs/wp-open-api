@@ -1,0 +1,18 @@
+[package]
+name = "wp-model-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "wp_model_core"
+
+[dependencies]
+serde = { workspace = true }
+serde_derive = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+ipnet = { workspace = true }
+thiserror = { workspace = true }
+wildmatch = { workspace = true }
+smallvec = { workspace = true }

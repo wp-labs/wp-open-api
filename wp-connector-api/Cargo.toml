@@ -1,0 +1,30 @@
+[package]
+name = "wp-connector-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "wp_connector_api"
+
+[dependencies]
+once_cell = "~1.21"
+async-trait = "~0.1"
+serde = { version = "~1.0", features = ["derive"] }
+toml = { workspace = true }
+anyhow = "~1.0"
+#wpl = { package = "wp-lang", path = "../../wp-lang" }
+wp_parse_api = { package = "wp-parse-api", path = "../wp-parse-api" }
+wp_model_core = { package = "wp-model-core", path = "../wp-model-core" }
+#wp_err = { package = "wp-error", path = "../../wp-error" }
+async-broadcast = "~0.6"
+thiserror = "~1.0"
+orion-error= "0.5.5"
+derive_more = "2.0"
+smallvec = { workspace = true }
+
+[features]
+test_helpers = []
+
+[dependencies.serde_json]
+workspace = true
