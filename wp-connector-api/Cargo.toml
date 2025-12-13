@@ -20,7 +20,7 @@ wp_model_core = { package = "wp-model-core", path = "../wp-model-core" }
 async-broadcast = "~0.7"
 thiserror = "~2.0"
 orion-error= "0.5.5"
-derive_more = "2.0"
+derive_more = "2.1"
 smallvec = { workspace = true }
 
 [features]

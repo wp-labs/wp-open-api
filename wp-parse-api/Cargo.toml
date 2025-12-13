@@ -10,7 +10,7 @@ bytes = { workspace = true }
 wp_data_model = { package = "wp-model-core", path = "../wp-model-core" }
 thiserror = "~2.0"
 orion-error= "0.5.5"
-derive_more = "2.0"
+derive_more = "2.1"
 
 serde_derive = "~1.0"
 serde = "~1.0"
