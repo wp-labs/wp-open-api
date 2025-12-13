@@ -17,7 +17,7 @@ anyhow = "~1.0"
 wp_parse_api = { package = "wp-parse-api", path = "../wp-parse-api" }
 wp_model_core = { package = "wp-model-core", path = "../wp-model-core" }
 #wp_err = { package = "wp-error", path = "../../wp-error" }
-async-broadcast = "~0.6"
+async-broadcast = "~0.7"
 thiserror = "~1.0"
 orion-error= "0.5.5"
 derive_more = "2.0"
