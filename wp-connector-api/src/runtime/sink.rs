@@ -176,7 +176,10 @@ mod tests {
 
         let replica_ctx = SinkBuildCtx::new_with_replica(PathBuf::from("/tmp/work"), 2, 0);
         assert_eq!(replica_ctx.replica_idx, 2);
-        assert_eq!(replica_ctx.replica_cnt, 1, "replica count should clamp to >=1");
+        assert_eq!(
+            replica_ctx.replica_cnt, 1,
+            "replica count should clamp to >=1"
+        );
 
         let limited = SinkBuildCtx::new(PathBuf::from("/tmp/work")).with_limit(250);
         assert_eq!(limited.rate_limit_rps, 250);
@@ -185,7 +188,7 @@ mod tests {
 
     #[test]
     fn sink_handle_wraps_async_sink() {
-        let handle = SinkHandle::new(Box::new(NoopSink::default()));
+        let handle = SinkHandle::new(Box::new(NoopSink));
         assert!(format!("{handle:?}").contains("SinkHandle"));
     }
 }

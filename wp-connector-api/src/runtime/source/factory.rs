@@ -194,10 +194,7 @@ mod tests {
     }
 
     fn make_source_handle(id: &'static str) -> SourceHandle {
-        SourceHandle::new(
-            Box::new(DummySource { id }),
-            SourceMeta::new(id, "dummy"),
-        )
+        SourceHandle::new(Box::new(DummySource { id }), SourceMeta::new(id, "dummy"))
     }
 
     #[test]
@@ -218,7 +215,7 @@ mod tests {
         assert_eq!(handle.metadata.name, meta.name);
         assert_eq!(handle.source.identifier(), "alpha");
 
-        let acceptor = AcceptorHandle::new("http", Box::new(DummyAcceptor::default()));
+        let acceptor = AcceptorHandle::new("http", Box::new(DummyAcceptor));
         assert_eq!(acceptor.name, "http");
     }
 
@@ -230,7 +227,7 @@ mod tests {
         svc.push_source(make_source_handle("b"));
         assert_eq!(svc.sources.len(), 2);
 
-        let svc = svc.with_acceptor(AcceptorHandle::new("svc", Box::new(DummyAcceptor::default())));
+        let svc = svc.with_acceptor(AcceptorHandle::new("svc", Box::new(DummyAcceptor)));
         assert!(svc.acceptor.is_some());
     }
 

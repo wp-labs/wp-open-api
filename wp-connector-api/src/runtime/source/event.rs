@@ -65,7 +65,12 @@ mod tests {
     fn source_event_new_sets_defaults() {
         let tags = Arc::new(Tags::default());
         let src_key = Arc::new(String::from("main"));
-        let event = SourceEvent::new(7, src_key.clone(), RawData::from_string("payload"), tags.clone());
+        let event = SourceEvent::new(
+            7,
+            src_key.clone(),
+            RawData::from_string("payload"),
+            tags.clone(),
+        );
 
         assert_eq!(event.event_id, 7);
         assert!(matches!(event.payload, RawData::String(_)));
