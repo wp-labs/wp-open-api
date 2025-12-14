@@ -54,3 +54,37 @@ impl std::fmt::Debug for SourceEvent {
             .finish()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+    use wp_parse_api::RawData;
+
+    #[test]
+    fn source_event_new_sets_defaults() {
+        let tags = Arc::new(Tags::default());
+        let src_key = Arc::new(String::from("main"));
+        let event = SourceEvent::new(7, src_key.clone(), RawData::from_string("payload"), tags.clone());
+
+        assert_eq!(event.event_id, 7);
+        assert!(matches!(event.payload, RawData::String(_)));
+        assert!(Arc::ptr_eq(&event.src_key, &src_key));
+        assert!(Arc::ptr_eq(&event.tags, &tags));
+        assert!(event.ups_ip.is_none());
+        assert!(event.preproc.is_none());
+    }
+
+    #[test]
+    fn debug_impl_reports_summary() {
+        let event = SourceEvent::new(
+            1,
+            Arc::new(String::from("key")),
+            RawData::from_string("hello"),
+            Arc::new(Tags::default()),
+        );
+        let debug = format!("{event:?}");
+        assert!(debug.contains("SourceEvent"));
+        assert!(debug.contains("len=5"));
+    }
+}

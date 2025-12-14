@@ -114,3 +114,78 @@ pub trait SinkFactory: Send + Sync + 'static {
         ctx: &SinkBuildCtx,
     ) -> anyhow::Result<SinkHandle>;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use async_trait::async_trait;
+    use std::{path::PathBuf, sync::Arc};
+    use wp_model_core::model::DataRecord;
+
+    #[derive(Default)]
+    struct NoopSink;
+
+    #[async_trait]
+    impl AsyncCtrl for NoopSink {
+        async fn stop(&mut self) -> SinkResult<()> {
+            Ok(())
+        }
+
+        async fn reconnect(&mut self) -> SinkResult<()> {
+            Ok(())
+        }
+    }
+
+    #[async_trait]
+    impl AsyncRecordSink for NoopSink {
+        async fn sink_record(&mut self, _data: &DataRecord) -> SinkResult<()> {
+            Ok(())
+        }
+
+        async fn sink_records(&mut self, _data: Vec<Arc<DataRecord>>) -> SinkResult<()> {
+            Ok(())
+        }
+    }
+
+    #[async_trait]
+    impl AsyncRawDataSink for NoopSink {
+        async fn sink_str(&mut self, _data: &str) -> SinkResult<()> {
+            Ok(())
+        }
+
+        async fn sink_bytes(&mut self, _data: &[u8]) -> SinkResult<()> {
+            Ok(())
+        }
+
+        async fn sink_str_batch(&mut self, _data: Vec<&str>) -> SinkResult<()> {
+            Ok(())
+        }
+
+        async fn sink_bytes_batch(&mut self, _data: Vec<&[u8]>) -> SinkResult<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn sink_build_ctx_defaults_and_limits() {
+        let ctx = SinkBuildCtx::new(PathBuf::from("/tmp/work"));
+        assert_eq!(ctx.work_root, PathBuf::from("/tmp/work"));
+        assert_eq!(ctx.replica_idx, 0);
+        assert_eq!(ctx.replica_cnt, 1);
+        assert_eq!(ctx.rate_limit_rps, 0);
+
+        let replica_ctx = SinkBuildCtx::new_with_replica(PathBuf::from("/tmp/work"), 2, 0);
+        assert_eq!(replica_ctx.replica_idx, 2);
+        assert_eq!(replica_ctx.replica_cnt, 1, "replica count should clamp to >=1");
+
+        let limited = SinkBuildCtx::new(PathBuf::from("/tmp/work")).with_limit(250);
+        assert_eq!(limited.rate_limit_rps, 250);
+        assert_eq!(limited.replica_cnt, 1);
+    }
+
+    #[test]
+    fn sink_handle_wraps_async_sink() {
+        let handle = SinkHandle::new(Box::new(NoopSink::default()));
+        assert!(format!("{handle:?}").contains("SinkHandle"));
+    }
+}

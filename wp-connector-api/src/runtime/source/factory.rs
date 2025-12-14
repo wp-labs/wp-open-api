@@ -154,3 +154,96 @@ pub trait SourceFactory: Send + Sync + 'static {
         ctx: &SourceBuildCtx,
     ) -> SourceResult<SourceSvcIns>;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runtime::source::SourceBatch;
+    use async_trait::async_trait;
+    use serde_json::json;
+    use std::path::PathBuf;
+
+    #[derive(Default)]
+    struct DummySource {
+        id: &'static str,
+    }
+
+    #[async_trait]
+    impl DataSource for DummySource {
+        async fn receive(&mut self) -> SourceResult<SourceBatch> {
+            Ok(Vec::new())
+        }
+
+        fn try_receive(&mut self) -> Option<SourceBatch> {
+            None
+        }
+
+        fn identifier(&self) -> String {
+            self.id.to_string()
+        }
+    }
+
+    #[derive(Default)]
+    struct DummyAcceptor;
+
+    #[async_trait]
+    impl ServiceAcceptor for DummyAcceptor {
+        async fn accept_connection(&mut self, _ctrl_rx: CtrlRx) -> SourceResult<()> {
+            Ok(())
+        }
+    }
+
+    fn make_source_handle(id: &'static str) -> SourceHandle {
+        SourceHandle::new(
+            Box::new(DummySource { id }),
+            SourceMeta::new(id, "dummy"),
+        )
+    }
+
+    #[test]
+    fn source_build_ctx_and_meta_helpers() {
+        let ctx = SourceBuildCtx::new(PathBuf::from("/tmp/source"));
+        assert_eq!(ctx.work_root, PathBuf::from("/tmp/source"));
+
+        let meta = SourceMeta::new("orders", "http");
+        assert_eq!(meta.name, "orders");
+        assert_eq!(meta.kind, "http");
+        assert_eq!(meta.tags.len(), 0);
+    }
+
+    #[test]
+    fn handle_constructors_store_inner_state() {
+        let meta = SourceMeta::new("alpha", "kafka");
+        let handle = SourceHandle::new(Box::new(DummySource { id: "alpha" }), meta.clone());
+        assert_eq!(handle.metadata.name, meta.name);
+        assert_eq!(handle.source.identifier(), "alpha");
+
+        let acceptor = AcceptorHandle::new("http", Box::new(DummyAcceptor::default()));
+        assert_eq!(acceptor.name, "http");
+    }
+
+    #[test]
+    fn source_svc_ins_builders_manage_members() {
+        let mut svc = SourceSvcIns::new().with_sources(vec![make_source_handle("a")]);
+        assert_eq!(svc.sources.len(), 1);
+
+        svc.push_source(make_source_handle("b"));
+        assert_eq!(svc.sources.len(), 2);
+
+        let svc = svc.with_acceptor(AcceptorHandle::new("svc", Box::new(DummyAcceptor::default())));
+        assert!(svc.acceptor.is_some());
+    }
+
+    #[test]
+    fn resolved_source_spec_defaults_optional_fields() {
+        let spec: ResolvedSourceSpec = serde_json::from_value(json!({
+            "name": "demo",
+            "kind": "http",
+            "connector_id": "conn-1"
+        }))
+        .unwrap();
+
+        assert!(spec.params.is_empty());
+        assert!(spec.tags.is_empty());
+    }
+}

@@ -68,3 +68,42 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::mpsc;
+
+    #[derive(Clone)]
+    struct Summary(&'static str);
+
+    impl ReasonSummary for Summary {
+        fn summary(&self) -> String {
+            self.0.into()
+        }
+    }
+
+    #[test]
+    fn sink_reason_from_send_error_uses_inner_summary() {
+        let (tx, rx) = mpsc::channel();
+        drop(rx);
+        let err = tx.send(Summary("queue overflow")).unwrap_err();
+        let reason = SinkReason::from(err);
+        match reason {
+            SinkReason::Sink(msg) => assert!(msg.contains("queue overflow")),
+            other => panic!("unexpected reason: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn sink_error_owe_wraps_displayable_error() {
+        let failing: Result<(), &str> = Err("io timeout");
+        let err = failing.owe_sink("flush failed").unwrap_err();
+        match err.reason() {
+            SinkReason::Sink(msg) => assert_eq!(msg, "flush failed"),
+            other => panic!("unexpected reason: {other:?}"),
+        }
+        let detail = err.detail();
+        assert_eq!(detail.as_ref().map(|s| s.as_str()), Some("io timeout"));
+    }
+}
