@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 use super::types::{CtrlRx, DataSource, Tags};
-use crate::{SourceResult, types::ParamMap};
+use crate::{ConnectorDefProvider, SourceResult, types::ParamMap};
 
 #[async_trait]
 pub trait ServiceAcceptor: Send {
@@ -142,7 +142,7 @@ pub struct ResolvedSourceSpec {
 }
 
 #[async_trait]
-pub trait SourceFactory: Send + Sync + 'static {
+pub trait SourceFactory: ConnectorDefProvider + Send + Sync + 'static {
     fn kind(&self) -> &'static str;
     /// 可选：轻量级参数校验（不产生 I/O），用于尽早暴露参数错误。
     fn validate_spec(&self, _spec: &ResolvedSourceSpec) -> SourceResult<()> {

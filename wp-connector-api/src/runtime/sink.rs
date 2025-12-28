@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use std::{path::PathBuf, sync::Arc};
 use wp_model_core::model::DataRecord;
 
-use crate::SinkResult;
+use crate::{ConnectorDefProvider, SinkResult};
 
 // Reuse workspace error type to avoid duplicating an error abstraction
 
@@ -102,17 +102,13 @@ pub struct ResolvedSinkSpec {
 }
 
 #[async_trait]
-pub trait SinkFactory: Send + Sync + 'static {
+pub trait SinkFactory: ConnectorDefProvider + Send + Sync + 'static {
     fn kind(&self) -> &'static str;
     /// 可选的类型特有校验（默认空实现）
-    fn validate_spec(&self, _spec: &ResolvedSinkSpec) -> anyhow::Result<()> {
+    fn validate_spec(&self, _spec: &ResolvedSinkSpec) -> SinkResult<()> {
         Ok(())
     }
-    async fn build(
-        &self,
-        spec: &ResolvedSinkSpec,
-        ctx: &SinkBuildCtx,
-    ) -> anyhow::Result<SinkHandle>;
+    async fn build(&self, spec: &ResolvedSinkSpec, ctx: &SinkBuildCtx) -> SinkResult<SinkHandle>;
 }
 
 #[cfg(test)]
