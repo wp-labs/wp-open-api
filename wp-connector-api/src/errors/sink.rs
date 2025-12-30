@@ -20,13 +20,13 @@ impl ErrorCode for SinkReason {
     fn error_code(&self) -> i32 {
         match self {
             // General sink errors
-            SinkReason::Sink(_) => 500,   // General sink unavailable
+            SinkReason::Sink(_) => 500, // General sink unavailable
 
             // Testing/mock errors
-            SinkReason::Mock => 599,      // Mock/test error
+            SinkReason::Mock => 599, // Mock/test error
 
             // Storage control errors
-            SinkReason::StgCtrl => 510,   // Storage control error
+            SinkReason::StgCtrl => 510, // Storage control error
 
             // Delegate to wrapped reason
             SinkReason::Uvs(r) => r.error_code(),

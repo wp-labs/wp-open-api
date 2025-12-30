@@ -25,8 +25,8 @@ impl ErrorCode for SourceReason {
     fn error_code(&self) -> i32 {
         match self {
             // Informational: normal conditions
-            SourceReason::NotData => 100,    // Temporary no data available
-            SourceReason::EOF => 101,        // End of data stream
+            SourceReason::NotData => 100, // Temporary no data available
+            SourceReason::EOF => 101,     // End of data stream
 
             // Retryable errors
             SourceReason::Disconnect(_) => 503, // Connection lost, can retry
@@ -55,10 +55,16 @@ mod tests {
         assert_eq!(SourceReason::EOF.error_code(), 101);
 
         // Retryable codes (5xx with specific meaning)
-        assert_eq!(SourceReason::Disconnect("conn lost".into()).error_code(), 503);
+        assert_eq!(
+            SourceReason::Disconnect("conn lost".into()).error_code(),
+            503
+        );
 
         // Internal errors (5xx)
-        assert_eq!(SourceReason::SupplierError("upstream".into()).error_code(), 500);
+        assert_eq!(
+            SourceReason::SupplierError("upstream".into()).error_code(),
+            500
+        );
         assert_eq!(SourceReason::Other("misc".into()).error_code(), 520);
     }
 
@@ -87,6 +93,6 @@ mod tests {
     #[test]
     fn source_reason_retryable_codes_are_5xx() {
         let code = SourceReason::Disconnect("x".into()).error_code();
-        assert!(code >= 500 && code < 600);
+        assert!((500..600).contains(&code));
     }
 }
