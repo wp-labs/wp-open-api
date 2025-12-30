@@ -14,7 +14,7 @@ pub use errors::sink::{ReasonSummary as ErrorSummary, SinkErrorOwe as SinkResult
 // --- Convenient top-level re-exports for common use cases ---
 // Config-time adapter (conn_url -> params)
 pub use config::adapter::ConnectorKindAdapter;
-pub use runtime::cnn::{ConnectorDef, ConnectorDefProvider, ConnectorScope};
+pub use runtime::cnn::{ConnectorDef, ConnectorScope, SinkDefProvider, SourceDefProvider};
 pub use types::ParamMap;
 // Runtime: sink side
 pub use runtime::sink::{

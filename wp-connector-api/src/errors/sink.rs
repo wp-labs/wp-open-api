@@ -18,7 +18,19 @@ pub enum SinkReason {
 }
 impl ErrorCode for SinkReason {
     fn error_code(&self) -> i32 {
-        255
+        match self {
+            // General sink errors
+            SinkReason::Sink(_) => 500,   // General sink unavailable
+
+            // Testing/mock errors
+            SinkReason::Mock => 599,      // Mock/test error
+
+            // Storage control errors
+            SinkReason::StgCtrl => 510,   // Storage control error
+
+            // Delegate to wrapped reason
+            SinkReason::Uvs(r) => r.error_code(),
+        }
     }
 }
 
@@ -105,5 +117,26 @@ mod tests {
         }
         let detail = err.detail();
         assert_eq!(detail.as_ref().map(|s| s.as_str()), Some("io timeout"));
+    }
+
+    #[test]
+    fn sink_reason_error_codes() {
+        assert_eq!(SinkReason::Sink("test".into()).error_code(), 500);
+        assert_eq!(SinkReason::Mock.error_code(), 599);
+        assert_eq!(SinkReason::StgCtrl.error_code(), 510);
+    }
+
+    #[test]
+    fn sink_reason_error_codes_are_distinct() {
+        let codes = vec![
+            SinkReason::Sink("x".into()).error_code(),
+            SinkReason::Mock.error_code(),
+            SinkReason::StgCtrl.error_code(),
+        ];
+        // Verify all codes are different
+        let mut unique = codes.clone();
+        unique.sort();
+        unique.dedup();
+        assert_eq!(codes.len(), unique.len(), "error codes should be distinct");
     }
 }

@@ -9,9 +9,9 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use wp_connector_api::{
-    AsyncCtrl, AsyncRawDataSink, AsyncRecordSink, ConnectorDef, ConnectorDefProvider,
-    ConnectorScope, DataSource, SinkBuildCtx, SinkFactory, SinkHandle, SinkResult, SinkSpec,
-    SourceBatch, SourceBuildCtx, SourceEvent, SourceFactory, SourceHandle, SourceMeta,
+    AsyncCtrl, AsyncRawDataSink, AsyncRecordSink, ConnectorDef, ConnectorScope, DataSource,
+    SinkBuildCtx, SinkDefProvider, SinkFactory, SinkHandle, SinkResult, SinkSpec, SourceBatch,
+    SourceBuildCtx, SourceDefProvider, SourceEvent, SourceFactory, SourceHandle, SourceMeta,
     SourceResult, SourceSpec, SourceSvcIns, Tags,
 };
 use wp_model_core::model::DataRecord;
@@ -186,7 +186,7 @@ impl DemoConnectorFactory {
     }
 }
 
-impl ConnectorDefProvider for DemoConnectorFactory {
+impl SourceDefProvider for DemoConnectorFactory {
     fn source_def(&self) -> ConnectorDef {
         ConnectorDef {
             id: "demo-source".into(),
@@ -197,7 +197,9 @@ impl ConnectorDefProvider for DemoConnectorFactory {
             origin: Some("test".into()),
         }
     }
+}
 
+impl SinkDefProvider for DemoConnectorFactory {
     fn sink_def(&self) -> ConnectorDef {
         ConnectorDef {
             id: "demo-sink".into(),
@@ -301,14 +303,16 @@ async fn test_source_produces_events_and_sink_collects() {
 }
 
 #[tokio::test]
-async fn test_connector_def_provider_returns_correct_metadata() {
+async fn test_def_providers_return_correct_metadata() {
     let factory = DemoConnectorFactory::new(vec![]);
 
+    // Test SourceDefProvider
     let source_def = factory.source_def();
     assert_eq!(source_def.id, "demo-source");
     assert_eq!(source_def.kind, "memory");
     assert_eq!(source_def.scope, ConnectorScope::Source);
 
+    // Test SinkDefProvider
     let sink_def = factory.sink_def();
     assert_eq!(sink_def.id, "demo-sink");
     assert_eq!(sink_def.kind, "memory");

@@ -27,11 +27,15 @@ This guide mirrors the current `wp-connector-api` implementation. It aggregates 
 `ConnectorDef` provides a builder method:
 - `with_scope(scope: ConnectorScope) -> Self`: set the scope and return self.
 
-**ConnectorDefProvider** trait: unified interface for connector definition and validation.
-- `source_def(&self) -> ConnectorDef`: returns the Source connector definition; panics if not implemented.
-- `sink_def(&self) -> ConnectorDef`: returns the Sink connector definition; panics if not implemented.
+**SourceDefProvider** trait: interface for Source connector definition and validation.
+- `source_def(&self) -> ConnectorDef`: returns the Source connector definition (required).
 - `validate_source(&self, def: &ConnectorDef) -> Result<(), String>`: validate a Source definition; defaults to `Ok(())`.
+
+**SinkDefProvider** trait: interface for Sink connector definition and validation.
+- `sink_def(&self) -> ConnectorDef`: returns the Sink connector definition (required).
 - `validate_sink(&self, def: &ConnectorDef) -> Result<(), String>`: validate a Sink definition; defaults to `Ok(())`.
+
+> Connectors can implement one or both traits as needed. For example, a pure Source connector only needs to implement `SourceDefProvider`, while a pure Sink connector only needs `SinkDefProvider`.
 
 ## 2. Sink Runtime Interfaces
 
@@ -102,8 +106,21 @@ This guide mirrors the current `wp-connector-api` implementation. It aggregates 
 
 ## 4. Error Model
 
-- **Sink**: `SinkReason` / `SinkError` wrap `orion_error::StructError`. Use `SinkReason::sink(ctx)` and the `SinkErrorOwe` helper (`some_call().owe_sink("context")?`) to annotate external failures. Variants include `Sink(String)`, `Mock`, `StgCtrl`, `Uvs`, all sharing `ErrorCode = 255`.
-- **Source**: `SourceReason` / `SourceError` mirror the sink side with variants such as `NotData`, `EOF`, `SupplierError(String)`. `SourceResult<T>` is an alias for `Result<T, StructError<SourceReason>>`.
+- **Sink**: `SinkReason` / `SinkError` wrap `orion_error::StructError`. Use `SinkReason::sink(ctx)` and the `SinkErrorOwe` helper (`some_call().owe_sink("context")?`) to annotate external failures.
+  - Error code mapping:
+    - `Sink(String)`: 500 — General sink unavailable
+    - `Mock`: 599 — Mock/test error
+    - `StgCtrl`: 510 — Storage control error
+    - `Uvs(UvsReason)`: Delegates to inner UvsReason's error code
+- **Source**: `SourceReason` / `SourceError` mirror the sink side.
+  - Error code mapping:
+    - `NotData`: 100 — Temporary no data available (normal)
+    - `EOF`: 101 — End of data stream (normal)
+    - `Disconnect(String)`: 503 — Connection lost (retryable)
+    - `SupplierError(String)`: 500 — Upstream supplier error
+    - `Other(String)`: 520 — Unclassified error
+    - `Uvs(UvsReason)`: Delegates to inner UvsReason's error code
+  - `SourceResult<T>` is an alias for `Result<T, StructError<SourceReason>>`.
 
 ## 5. Example: In-Memory Connector
 
@@ -230,7 +247,7 @@ impl AsyncRawDataSink for MemorySink {
 ```rust
 use async_trait::async_trait;
 use wp_connector_api::{
-    ConnectorDef, ConnectorDefProvider, ConnectorScope,
+    ConnectorDef, ConnectorScope, SinkDefProvider, SourceDefProvider,
     SinkFactory, SinkHandle, SinkBuildCtx, SinkSpec, SinkResult,
     SourceFactory, SourceHandle, SourceMeta, SourceBuildCtx,
     SourceSpec, SourceResult, SourceSvcIns,
@@ -241,7 +258,8 @@ struct DemoConnectorFactory {
     source_events: Vec<String>,
 }
 
-impl ConnectorDefProvider for DemoConnectorFactory {
+// Implement SourceDefProvider as needed
+impl SourceDefProvider for DemoConnectorFactory {
     fn source_def(&self) -> ConnectorDef {
         ConnectorDef {
             id: "demo-source".into(),
@@ -252,6 +270,10 @@ impl ConnectorDefProvider for DemoConnectorFactory {
             origin: Some("demo".into()),
         }
     }
+}
+
+// Implement SinkDefProvider as needed
+impl SinkDefProvider for DemoConnectorFactory {
     fn sink_def(&self) -> ConnectorDef {
         ConnectorDef {
             id: "demo-sink".into(),

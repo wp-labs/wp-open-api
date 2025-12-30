@@ -27,11 +27,15 @@
 `ConnectorDef` 提供链式构造方法：
 - `with_scope(scope: ConnectorScope) -> Self`：设置作用域并返回自身。
 
-**ConnectorDefProvider** trait：为连接器实现提供统一的定义与验证接口。
-- `source_def(&self) -> ConnectorDef`：返回 Source 连接器定义，未实现时会 panic。
-- `sink_def(&self) -> ConnectorDef`：返回 Sink 连接器定义，未实现时会 panic。
+**SourceDefProvider** trait：为 Source 连接器提供定义与验证接口。
+- `source_def(&self) -> ConnectorDef`：返回 Source 连接器定义（必须实现）。
 - `validate_source(&self, def: &ConnectorDef) -> Result<(), String>`：校验 Source 定义，默认返回 `Ok(())`。
+
+**SinkDefProvider** trait：为 Sink 连接器提供定义与验证接口。
+- `sink_def(&self) -> ConnectorDef`：返回 Sink 连接器定义（必须实现）。
 - `validate_sink(&self, def: &ConnectorDef) -> Result<(), String>`：校验 Sink 定义，默认返回 `Ok(())`。
+
+> 连接器可按需实现其中一个或两个 trait。例如，纯 Source 连接器只需实现 `SourceDefProvider`，纯 Sink 连接器只需实现 `SinkDefProvider`。
 
 ## 2. Sink 运行时接口
 
@@ -107,9 +111,20 @@
 
 - Sink 侧：
   - `SinkReason`/`SinkError` 基于 `orion_error::StructError`，提供 `SinkReason::sink(msg)` 以及 `SinkErrorOwe` trait（`owe_sink("msg")?`）用于包装外部错误。
-  - 常见枚举：`Sink(String)`、`Mock`、`StgCtrl`、`Uvs`。所有 `ErrorCode` 统一返回 `255`，方便与外部系统对齐。
+  - 错误码映射：
+    - `Sink(String)`: 500 —— 通用 Sink 不可用
+    - `Mock`: 599 —— 测试/模拟错误
+    - `StgCtrl`: 510 —— 存储控制错误
+    - `Uvs(UvsReason)`: 委托给内部 UvsReason 的错误码
 - Source 侧：
-  - `SourceReason`/`SourceError` 同样走 `StructError`，包含 `NotData`、`EOF`、`SupplierError(String)` 等变体。
+  - `SourceReason`/`SourceError` 同样走 `StructError`。
+  - 错误码映射：
+    - `NotData`: 100 —— 暂时无数据（正常情况）
+    - `EOF`: 101 —— 数据流结束（正常情况）
+    - `Disconnect(String)`: 503 —— 连接断开（可重试）
+    - `SupplierError(String)`: 500 —— 上游供应商错误
+    - `Other(String)`: 520 —— 未分类错误
+    - `Uvs(UvsReason)`: 委托给内部 UvsReason 的错误码
   - `SourceResult<T>` = `Result<T, StructError<SourceReason>>`，在 `DataSource` 实现中直接使用。
 
 ## 5. 示例：内存连接器
@@ -237,7 +252,7 @@ impl AsyncRawDataSink for MemorySink {
 ```rust
 use async_trait::async_trait;
 use wp_connector_api::{
-    ConnectorDef, ConnectorDefProvider, ConnectorScope,
+    ConnectorDef, ConnectorScope, SinkDefProvider, SourceDefProvider,
     SinkFactory, SinkHandle, SinkBuildCtx, SinkSpec, SinkResult,
     SourceFactory, SourceHandle, SourceMeta, SourceBuildCtx,
     SourceSpec, SourceResult, SourceSvcIns,
@@ -248,7 +263,8 @@ struct DemoConnectorFactory {
     source_events: Vec<String>,
 }
 
-impl ConnectorDefProvider for DemoConnectorFactory {
+// 按需实现 SourceDefProvider
+impl SourceDefProvider for DemoConnectorFactory {
     fn source_def(&self) -> ConnectorDef {
         ConnectorDef {
             id: "demo-source".into(),
@@ -259,6 +275,10 @@ impl ConnectorDefProvider for DemoConnectorFactory {
             origin: Some("demo".into()),
         }
     }
+}
+
+// 按需实现 SinkDefProvider
+impl SinkDefProvider for DemoConnectorFactory {
     fn sink_def(&self) -> ConnectorDef {
         ConnectorDef {
             id: "demo-sink".into(),
