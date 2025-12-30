@@ -259,3 +259,225 @@ impl From<&DataType> for String {
     }
 }
 use serde::{Deserialize, Serialize};
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_primitive_types() {
+        assert_eq!(DataType::from("bool").unwrap(), DataType::Bool);
+        assert_eq!(DataType::from("chars").unwrap(), DataType::Chars);
+        assert_eq!(DataType::from("digit").unwrap(), DataType::Digit);
+        assert_eq!(DataType::from("float").unwrap(), DataType::Float);
+        assert_eq!(DataType::from("symbol").unwrap(), DataType::Symbol);
+        assert_eq!(DataType::from("auto").unwrap(), DataType::Auto);
+        assert_eq!(DataType::from("_").unwrap(), DataType::Ignore);
+    }
+
+    #[test]
+    fn test_from_time_types() {
+        assert_eq!(DataType::from("time").unwrap(), DataType::Time);
+        assert_eq!(DataType::from("time_iso").unwrap(), DataType::TimeISO);
+        assert_eq!(DataType::from("time_3339").unwrap(), DataType::TimeRFC3339);
+        assert_eq!(DataType::from("time_2822").unwrap(), DataType::TimeRFC2822);
+        assert_eq!(
+            DataType::from("time_timestamp").unwrap(),
+            DataType::TimeTIMESTAMP
+        );
+        // time_clf uses aliases like time/clf, time/apache, etc.
+    }
+
+    #[test]
+    fn test_from_time_aliases() {
+        // CLF aliases
+        assert_eq!(DataType::from("time/apache").unwrap(), DataType::TimeCLF);
+        assert_eq!(DataType::from("time/clf").unwrap(), DataType::TimeCLF);
+        assert_eq!(DataType::from("time/httpd").unwrap(), DataType::TimeCLF);
+        assert_eq!(DataType::from("time/nginx").unwrap(), DataType::TimeCLF);
+        // Other aliases
+        assert_eq!(
+            DataType::from("time/timestamp").unwrap(),
+            DataType::TimeTIMESTAMP
+        );
+        assert_eq!(
+            DataType::from("time/epoch").unwrap(),
+            DataType::TimeTIMESTAMP
+        );
+        assert_eq!(
+            DataType::from("time/rfc3339").unwrap(),
+            DataType::TimeRFC3339
+        );
+        assert_eq!(
+            DataType::from("time/rfc2822").unwrap(),
+            DataType::TimeRFC2822
+        );
+    }
+
+    #[test]
+    fn test_from_network_types() {
+        assert_eq!(DataType::from("ip").unwrap(), DataType::IP);
+        assert_eq!(DataType::from("ip_net").unwrap(), DataType::IpNet);
+        assert_eq!(DataType::from("domain").unwrap(), DataType::Domain);
+        assert_eq!(DataType::from("email").unwrap(), DataType::Email);
+        assert_eq!(DataType::from("port").unwrap(), DataType::Port);
+        assert_eq!(DataType::from("url").unwrap(), DataType::Url);
+    }
+
+    #[test]
+    fn test_from_http_types() {
+        assert_eq!(
+            DataType::from("http/request").unwrap(),
+            DataType::HttpRequest
+        );
+        assert_eq!(
+            DataType::from("http_request").unwrap(),
+            DataType::HttpRequest
+        );
+        assert_eq!(DataType::from("http/status").unwrap(), DataType::HttpStatus);
+        assert_eq!(DataType::from("http_status").unwrap(), DataType::HttpStatus);
+        assert_eq!(DataType::from("http/agent").unwrap(), DataType::HttpAgent);
+        assert_eq!(
+            DataType::from("http/user_agent").unwrap(),
+            DataType::HttpAgent
+        );
+        assert_eq!(DataType::from("http/method").unwrap(), DataType::HttpMethod);
+    }
+
+    #[test]
+    fn test_from_special_types() {
+        assert_eq!(DataType::from("hex").unwrap(), DataType::Hex);
+        assert_eq!(DataType::from("base64").unwrap(), DataType::Base64);
+        assert_eq!(DataType::from("kv").unwrap(), DataType::KV);
+        assert_eq!(DataType::from("json").unwrap(), DataType::Json);
+        assert_eq!(DataType::from("exact_json").unwrap(), DataType::ExactJson);
+        assert_eq!(DataType::from("json/strict").unwrap(), DataType::ExactJson);
+        assert_eq!(DataType::from("proto_text").unwrap(), DataType::ProtoText);
+        assert_eq!(DataType::from("proto/text").unwrap(), DataType::ProtoText);
+        assert_eq!(DataType::from("obj").unwrap(), DataType::Obj);
+        assert_eq!(DataType::from("object").unwrap(), DataType::Obj);
+        assert_eq!(DataType::from("id_card").unwrap(), DataType::IdCard);
+        assert_eq!(
+            DataType::from("mobile_phone").unwrap(),
+            DataType::MobilePhone
+        );
+    }
+
+    #[test]
+    fn test_to_arr_parsing() {
+        // "array" alone -> Array("auto")
+        assert_eq!(
+            DataType::to_arr("array").unwrap(),
+            DataType::Array("auto".into())
+        );
+        // "array/" -> Array("auto")
+        assert_eq!(
+            DataType::to_arr("array/").unwrap(),
+            DataType::Array("auto".into())
+        );
+        // "array/digit" -> Array("digit")
+        assert_eq!(
+            DataType::to_arr("array/digit").unwrap(),
+            DataType::Array("digit".into())
+        );
+        assert_eq!(
+            DataType::to_arr("array/chars").unwrap(),
+            DataType::Array("chars".into())
+        );
+    }
+
+    #[test]
+    fn test_from_array_types() {
+        assert_eq!(
+            DataType::from("array").unwrap(),
+            DataType::Array("auto".into())
+        );
+        assert_eq!(
+            DataType::from("array/ip").unwrap(),
+            DataType::Array("ip".into())
+        );
+    }
+
+    #[test]
+    fn test_from_unsupported_type() {
+        let result = DataType::from("unknown_type");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("unknown meta"));
+    }
+
+    #[test]
+    fn test_to_arr_invalid() {
+        // Not starting with "array"
+        assert!(DataType::to_arr("notarray").is_err());
+        // "arrayfoo" (no slash after array)
+        assert!(DataType::to_arr("arrayfoo").is_err());
+    }
+
+    #[test]
+    fn test_static_name() {
+        assert_eq!(DataType::Bool.static_name(), "bool");
+        assert_eq!(DataType::Chars.static_name(), "chars");
+        assert_eq!(DataType::Digit.static_name(), "digit");
+        assert_eq!(DataType::Float.static_name(), "float");
+        assert_eq!(DataType::Time.static_name(), "time");
+        assert_eq!(DataType::IP.static_name(), "ip");
+        assert_eq!(DataType::Ignore.static_name(), "_");
+        assert_eq!(DataType::Array("digit".into()).static_name(), "array");
+    }
+
+    #[test]
+    fn test_display() {
+        assert_eq!(format!("{}", DataType::Bool), "bool");
+        assert_eq!(format!("{}", DataType::Chars), "chars");
+        assert_eq!(
+            format!("{}", DataType::Array("digit".into())),
+            "array/digit"
+        );
+    }
+
+    #[test]
+    fn test_string_from_datatype() {
+        assert_eq!(String::from(&DataType::Bool), "bool");
+        assert_eq!(String::from(&DataType::IP), "ip");
+        assert_eq!(
+            String::from(&DataType::Array("chars".into())),
+            "array/chars"
+        );
+    }
+
+    #[test]
+    fn test_parse_pattern_first() {
+        // Should return false
+        assert!(!DataType::Chars.parse_patten_first());
+        assert!(!DataType::Ignore.parse_patten_first());
+        assert!(!DataType::SN.parse_patten_first());
+        assert!(!DataType::Auto.parse_patten_first());
+
+        // Should return true
+        assert!(DataType::Bool.parse_patten_first());
+        assert!(DataType::Digit.parse_patten_first());
+        assert!(DataType::IP.parse_patten_first());
+        assert!(DataType::Time.parse_patten_first());
+    }
+
+    #[test]
+    fn test_default() {
+        assert_eq!(DataType::default(), DataType::Auto);
+    }
+
+    #[test]
+    fn test_serde_roundtrip() {
+        let types = vec![
+            DataType::Bool,
+            DataType::Chars,
+            DataType::Digit,
+            DataType::Array("ip".into()),
+        ];
+        for dt in types {
+            let json = serde_json::to_string(&dt).unwrap();
+            let parsed: DataType = serde_json::from_str(&json).unwrap();
+            assert_eq!(dt, parsed);
+        }
+    }
+}

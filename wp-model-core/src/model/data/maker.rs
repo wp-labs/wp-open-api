@@ -211,3 +211,238 @@ impl Value {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::DataField;
+    use chrono::NaiveDateTime;
+    use std::net::{IpAddr, Ipv4Addr};
+
+    // ========== Field factory method tests ==========
+
+    #[test]
+    fn test_field_from_bool() {
+        let field: DataField = Field::from_bool("is_active", true);
+        assert_eq!(field.name, "is_active");
+        assert_eq!(field.meta, DataType::Bool);
+        assert_eq!(field.value, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_field_from_chars() {
+        let field: DataField = Field::from_chars("message", "hello");
+        assert_eq!(field.name, "message");
+        assert_eq!(field.meta, DataType::Chars);
+        assert_eq!(field.value, Value::Chars("hello".into()));
+    }
+
+    #[test]
+    fn test_field_from_symbol() {
+        let field: DataField = Field::from_symbol("status", "OK");
+        assert_eq!(field.name, "status");
+        assert_eq!(field.meta, DataType::Symbol);
+        // Note: Maker<String> produces Value::Chars, meta carries the semantic type
+        assert_eq!(field.value, Value::Chars("OK".into()));
+    }
+
+    #[test]
+    fn test_field_from_digit() {
+        let field: DataField = Field::from_digit("count", 42);
+        assert_eq!(field.name, "count");
+        assert_eq!(field.meta, DataType::Digit);
+        assert_eq!(field.value, Value::Digit(42));
+    }
+
+    #[test]
+    fn test_field_from_float() {
+        let field: DataField = Field::from_float("ratio", 2.14);
+        assert_eq!(field.name, "ratio");
+        assert_eq!(field.meta, DataType::Float);
+        assert_eq!(field.value, Value::Float(2.14));
+    }
+
+    #[test]
+    fn test_field_from_hex() {
+        let field: DataField = Field::from_hex("color", HexT(0xFF00FF));
+        assert_eq!(field.name, "color");
+        assert_eq!(field.meta, DataType::Hex);
+        assert_eq!(field.value, Value::Hex(HexT(0xFF00FF)));
+    }
+
+    #[test]
+    fn test_field_from_ip() {
+        let ip = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1));
+        let field: DataField = Field::from_ip("src_ip", ip);
+        assert_eq!(field.name, "src_ip");
+        assert_eq!(field.meta, DataType::IP);
+        assert_eq!(field.value, Value::IpAddr(ip));
+    }
+
+    #[test]
+    fn test_field_from_domain() {
+        let field: DataField = Field::from_domain("host", "example.com");
+        assert_eq!(field.name, "host");
+        assert_eq!(field.meta, DataType::Domain);
+        assert_eq!(field.value, Value::Domain(DomainT("example.com".into())));
+    }
+
+    #[test]
+    fn test_field_from_url() {
+        let field: DataField = Field::from_url("link", "https://example.com");
+        assert_eq!(field.name, "link");
+        assert_eq!(field.meta, DataType::Url);
+        assert_eq!(
+            field.value,
+            Value::Url(UrlValue("https://example.com".into()))
+        );
+    }
+
+    #[test]
+    fn test_field_from_email() {
+        let field: DataField = Field::from_email("contact", "test@example.com");
+        assert_eq!(field.name, "contact");
+        assert_eq!(field.meta, DataType::Email);
+        assert_eq!(field.value, Value::Email(EmailT("test@example.com".into())));
+    }
+
+    #[test]
+    fn test_field_from_id_card() {
+        let field: DataField = Field::from_id_card("id", "123456789");
+        assert_eq!(field.name, "id");
+        assert_eq!(field.meta, DataType::IdCard);
+        assert_eq!(field.value, Value::IdCard(IdCardT("123456789".into())));
+    }
+
+    #[test]
+    fn test_field_from_mobile_phone() {
+        let field: DataField = Field::from_mobile_phone("phone", "13800138000");
+        assert_eq!(field.name, "phone");
+        assert_eq!(field.meta, DataType::MobilePhone);
+        assert_eq!(
+            field.value,
+            Value::MobilePhone(MobilePhoneT("13800138000".into()))
+        );
+    }
+
+    #[test]
+    fn test_field_from_ignore() {
+        let field: DataField = Field::from_ignore("unused");
+        assert_eq!(field.name, "unused");
+        assert_eq!(field.meta, DataType::Ignore);
+        assert_eq!(field.value, Value::Ignore(IgnoreT::default()));
+    }
+
+    #[test]
+    fn test_field_from_time() {
+        let dt = NaiveDateTime::parse_from_str("2024-01-15 10:30:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let field: DataField = Field::from_time("timestamp", dt);
+        assert_eq!(field.name, "timestamp");
+        assert_eq!(field.meta, DataType::Time);
+        assert_eq!(field.value, Value::Time(dt));
+    }
+
+    #[test]
+    fn test_field_from_arr_with_elements() {
+        let arr = vec![Field::from_digit("item", 1), Field::from_digit("item", 2)];
+        let field: DataField = Field::from_arr("numbers", arr);
+        assert_eq!(field.name, "numbers");
+        assert_eq!(field.meta, DataType::Array("digit".into()));
+    }
+
+    #[test]
+    fn test_field_from_arr_empty() {
+        let arr: Vec<DataField> = vec![];
+        let field: DataField = Field::from_arr("empty", arr);
+        assert_eq!(field.name, "empty");
+        assert_eq!(field.meta, DataType::Array("auto".into()));
+    }
+
+    #[test]
+    fn test_field_from_obj() {
+        let obj = ObjectValue::new();
+        let field: DataField = Field::from_obj("data", obj.clone());
+        assert_eq!(field.name, "data");
+        assert_eq!(field.meta, DataType::Obj);
+        assert_eq!(field.value, Value::Obj(obj));
+    }
+
+    // ========== Value::tag() tests ==========
+
+    #[test]
+    fn test_value_tag() {
+        assert_eq!(Value::Null.tag(), "Null");
+        assert_eq!(Value::Bool(true).tag(), "Bool");
+        assert_eq!(Value::Chars("x".into()).tag(), "Chars");
+        assert_eq!(Value::Symbol("x".into()).tag(), "Symbol");
+        assert_eq!(Value::Digit(1).tag(), "Digit");
+        assert_eq!(Value::Float(1.0).tag(), "Float");
+        assert_eq!(Value::Hex(HexT(0)).tag(), "Hex");
+        assert_eq!(Value::Ignore(IgnoreT::default()).tag(), "Ignore");
+        assert_eq!(Value::Obj(ObjectValue::new()).tag(), "Map");
+        assert_eq!(Value::Array(vec![]).tag(), "Array");
+        assert_eq!(Value::Domain(DomainT("x".into())).tag(), "Domain");
+        assert_eq!(Value::Url(UrlValue("x".into())).tag(), "Url");
+        assert_eq!(Value::Email(EmailT("x".into())).tag(), "Email");
+        assert_eq!(Value::IdCard(IdCardT("x".into())).tag(), "IdCard");
+        assert_eq!(
+            Value::MobilePhone(MobilePhoneT("x".into())).tag(),
+            "MobilePhone"
+        );
+    }
+
+    #[test]
+    fn test_value_tag_ip() {
+        let ip = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+        assert_eq!(Value::IpAddr(ip).tag(), "IpAddr");
+    }
+
+    // ========== Value::is_empty() tests ==========
+
+    #[test]
+    fn test_is_empty_always_false() {
+        // These types are never considered empty
+        assert!(!Value::Bool(false).is_empty());
+        assert!(!Value::Digit(0).is_empty());
+        assert!(!Value::Float(0.0).is_empty());
+        assert!(!Value::Hex(HexT(0)).is_empty());
+    }
+
+    #[test]
+    fn test_is_empty_always_true() {
+        assert!(Value::Null.is_empty());
+        assert!(Value::Ignore(IgnoreT::default()).is_empty());
+    }
+
+    #[test]
+    fn test_is_empty_string_types() {
+        // Empty strings
+        assert!(Value::Chars("".into()).is_empty());
+        assert!(Value::Symbol("".into()).is_empty());
+        assert!(Value::Domain(DomainT("".into())).is_empty());
+        assert!(Value::Url(UrlValue("".into())).is_empty());
+        assert!(Value::Email(EmailT("".into())).is_empty());
+        assert!(Value::IdCard(IdCardT("".into())).is_empty());
+        assert!(Value::MobilePhone(MobilePhoneT("".into())).is_empty());
+
+        // Non-empty strings
+        assert!(!Value::Chars("x".into()).is_empty());
+        assert!(!Value::Symbol("x".into()).is_empty());
+        assert!(!Value::Domain(DomainT("x".into())).is_empty());
+        assert!(!Value::Url(UrlValue("x".into())).is_empty());
+        assert!(!Value::Email(EmailT("x".into())).is_empty());
+        assert!(!Value::IdCard(IdCardT("x".into())).is_empty());
+        assert!(!Value::MobilePhone(MobilePhoneT("x".into())).is_empty());
+    }
+
+    #[test]
+    fn test_is_empty_collections() {
+        // Empty
+        assert!(Value::Array(vec![]).is_empty());
+        assert!(Value::Obj(ObjectValue::new()).is_empty());
+
+        // Non-empty
+        let arr = vec![Field::from_digit("x", 1)];
+        assert!(!Value::Array(arr).is_empty());
+    }
+}
