@@ -29,10 +29,6 @@ cargo fmt --all
 cargo clippy --all-targets --all-features -D warnings
 ```
 
-## License
-
-Distributed under [Apache License 2.0](LICENSE). Keep the License/NOTICE files and add your own notices when redistributing modified copies.
-
 ## Maintainers & Attribution
 
 - Default copyright/maintainer signature: `WarpParse Dev Team`. If publishing under a personal name, update `[workspace.package].authors` and the copyright line in `LICENSE`.
