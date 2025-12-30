@@ -650,7 +650,7 @@ checksum = "21a0236b59786fed61e2a80582dd500fe61f18b5dca67a4a067d0bc9039339cf"
 
 [[package]]
 name = "wp-connector-api"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "anyhow",
  "async-broadcast",
@@ -670,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "wp-model-core"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "chrono",
  "ipnet",
@@ -684,7 +684,7 @@ dependencies = [
 
 [[package]]
 name = "wp-parse-api"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "bytes",
  "derive_more",
