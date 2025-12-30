@@ -2,8 +2,7 @@
 
 ![CI](https://github.com/wp-labs/wp-open-api/workflows/CI/badge.svg)
 [![codecov](https://codecov.io/gh/wp-labs/wp-open-api/graph/badge.svg?token=6SVCXBHB6B)](https://codecov.io/gh/wp-labs/wp-open-api)
-![Crates.io](https://img.shields.io/crates/v/wp-parse-api.svg)
-![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
+![License](https://img.shields.io/badge/License-Elastic%202.0-green.svg)
 ![Rust](https://img.shields.io/badge/rust-stable%2Bbeta-orange.svg)
 
 `wp-open-api` maintains the shared APIs for warp-parse: sink/source runtime traits, parser interfaces, and the core data model. All crates here are reusable Rust libraries consumed by other services.
