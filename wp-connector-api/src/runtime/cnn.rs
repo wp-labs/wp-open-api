@@ -2,16 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::ParamMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub enum ConnectorScope {
+    #[default]
     Source,
     Sink,
-}
-
-impl Default for ConnectorScope {
-    fn default() -> Self {
-        ConnectorScope::Source
-    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -48,5 +43,30 @@ pub trait ConnectorDefProvider: Send + Sync + 'static {
     }
     fn validate_sink(&self, _def: &ConnectorDef) -> Result<(), String> {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_connector_scope_default() {
+        let scope = ConnectorScope::default();
+        assert_eq!(scope, ConnectorScope::Source);
+    }
+
+    #[test]
+    fn test_connector_def_serde_and_with_scope() {
+        let json = r#"{"id": "mysql-prod", "type": "mysql", "params": {"host": "localhost"}}"#;
+        let def: ConnectorDef = serde_json::from_str(json).unwrap();
+
+        assert_eq!(def.id, "mysql-prod");
+        assert_eq!(def.kind, "mysql");
+        assert_eq!(def.scope, ConnectorScope::Source); // default
+        assert_eq!(def.default_params.get("host").unwrap(), "localhost");
+
+        let def = def.with_scope(ConnectorScope::Sink);
+        assert_eq!(def.scope, ConnectorScope::Sink);
     }
 }

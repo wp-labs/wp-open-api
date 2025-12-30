@@ -10,6 +10,29 @@
   - `defaults(&self)`：每个连接器的默认键值，返回 `ParamMap::new()` 时表示无默认项。
   - `url_to_params(&self, url: &str)`：解析 URL → ParamMap，遇到不支持的格式返回 `anyhow::Error`。
 
+### 1.1 连接器定义 API
+
+**ConnectorScope**：表示连接器的作用域枚举，可选值：
+- `Source`（默认值）：数据源连接器。
+- `Sink`：数据目标连接器。
+
+**ConnectorDef**：连接器元数据定义结构体，字段说明：
+- `id: String`：连接器唯一标识。
+- `kind: String`：连接器类型（序列化时字段名为 `type`）。
+- `scope: ConnectorScope`：作用域，运行时字段，不参与序列化。
+- `allow_override: Vec<String>`：允许覆盖的参数键列表。
+- `default_params: ParamMap`：默认参数（序列化时字段名为 `params`）。
+- `origin: Option<String>`：来源标识，运行时字段，不参与序列化。
+
+`ConnectorDef` 提供链式构造方法：
+- `with_scope(scope: ConnectorScope) -> Self`：设置作用域并返回自身。
+
+**ConnectorDefProvider** trait：为连接器实现提供统一的定义与验证接口。
+- `source_def(&self) -> ConnectorDef`：返回 Source 连接器定义，未实现时会 panic。
+- `sink_def(&self) -> ConnectorDef`：返回 Sink 连接器定义，未实现时会 panic。
+- `validate_source(&self, def: &ConnectorDef) -> Result<(), String>`：校验 Source 定义，默认返回 `Ok(())`。
+- `validate_sink(&self, def: &ConnectorDef) -> Result<(), String>`：校验 Sink 定义，默认返回 `Ok(())`。
+
 ## 2. Sink 运行时接口
 
 ### 2.1 核心 Trait
@@ -89,7 +112,196 @@
   - `SourceReason`/`SourceError` 同样走 `StructError`，包含 `NotData`、`EOF`、`SupplierError(String)` 等变体。
   - `SourceResult<T>` = `Result<T, StructError<SourceReason>>`，在 `DataSource` 实现中直接使用。
 
-## 5. 实践建议
+## 5. 示例：内存连接器
+
+下面是一个完整的内存连接器示例，同时实现 Source 和 Sink，可作为开发新连接器的参考模板。
+
+### 5.1 MemorySource 实现
+
+```rust
+use std::sync::Arc;
+use async_trait::async_trait;
+use wp_connector_api::{
+    DataSource, SourceBatch, SourceEvent, SourceResult, Tags,
+};
+use wp_parse_api::RawData;
+
+struct MemorySource {
+    name: String,
+    events: Vec<String>,
+    cursor: usize,
+}
+
+#[async_trait]
+impl DataSource for MemorySource {
+    async fn receive(&mut self) -> SourceResult<SourceBatch> {
+        if self.cursor >= self.events.len() {
+            return Ok(vec![]); // 无更多数据
+        }
+        let event = SourceEvent::new(
+            self.cursor as u64,
+            Arc::new(self.name.clone()),
+            RawData::from_string(&self.events[self.cursor]),
+            Arc::new(Tags::default()),
+        );
+        self.cursor += 1;
+        Ok(vec![event])
+    }
+
+    fn try_receive(&mut self) -> Option<SourceBatch> {
+        if self.cursor < self.events.len() {
+            let event = SourceEvent::new(
+                self.cursor as u64,
+                Arc::new(self.name.clone()),
+                RawData::from_string(&self.events[self.cursor]),
+                Arc::new(Tags::default()),
+            );
+            self.cursor += 1;
+            Some(vec![event])
+        } else {
+            None
+        }
+    }
+
+    fn supports_try_receive(&self) -> bool { true }
+
+    fn identifier(&self) -> String {
+        format!("memory-source:{}", self.name)
+    }
+}
+```
+
+### 5.2 MemorySink 实现
+
+```rust
+use std::sync::{Arc, Mutex};
+use async_trait::async_trait;
+use wp_connector_api::{
+    AsyncCtrl, AsyncRawDataSink, AsyncRecordSink, SinkResult,
+};
+use wp_model_core::model::DataRecord;
+
+#[derive(Clone, Default)]
+struct MemorySinkBuffer {
+    data: Arc<Mutex<Vec<String>>>,
+}
+
+struct MemorySink {
+    buffer: MemorySinkBuffer,
+}
+
+#[async_trait]
+impl AsyncCtrl for MemorySink {
+    async fn stop(&mut self) -> SinkResult<()> { Ok(()) }
+    async fn reconnect(&mut self) -> SinkResult<()> { Ok(()) }
+}
+
+#[async_trait]
+impl AsyncRecordSink for MemorySink {
+    async fn sink_record(&mut self, _data: &DataRecord) -> SinkResult<()> {
+        self.buffer.data.lock().unwrap().push("record".into());
+        Ok(())
+    }
+    async fn sink_records(&mut self, data: Vec<Arc<DataRecord>>) -> SinkResult<()> {
+        let mut buf = self.buffer.data.lock().unwrap();
+        for _ in data { buf.push("record".into()); }
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl AsyncRawDataSink for MemorySink {
+    async fn sink_str(&mut self, data: &str) -> SinkResult<()> {
+        self.buffer.data.lock().unwrap().push(data.to_string());
+        Ok(())
+    }
+    async fn sink_bytes(&mut self, data: &[u8]) -> SinkResult<()> {
+        self.buffer.data.lock().unwrap().push(String::from_utf8_lossy(data).into());
+        Ok(())
+    }
+    async fn sink_str_batch(&mut self, data: Vec<&str>) -> SinkResult<()> {
+        let mut buf = self.buffer.data.lock().unwrap();
+        for s in data { buf.push(s.to_string()); }
+        Ok(())
+    }
+    async fn sink_bytes_batch(&mut self, data: Vec<&[u8]>) -> SinkResult<()> {
+        let mut buf = self.buffer.data.lock().unwrap();
+        for b in data { buf.push(String::from_utf8_lossy(b).into()); }
+        Ok(())
+    }
+}
+```
+
+### 5.3 ConnectorFactory 实现
+
+```rust
+use async_trait::async_trait;
+use wp_connector_api::{
+    ConnectorDef, ConnectorDefProvider, ConnectorScope,
+    SinkFactory, SinkHandle, SinkBuildCtx, SinkSpec, SinkResult,
+    SourceFactory, SourceHandle, SourceMeta, SourceBuildCtx,
+    SourceSpec, SourceResult, SourceSvcIns,
+};
+
+struct DemoConnectorFactory {
+    sink_buffer: MemorySinkBuffer,
+    source_events: Vec<String>,
+}
+
+impl ConnectorDefProvider for DemoConnectorFactory {
+    fn source_def(&self) -> ConnectorDef {
+        ConnectorDef {
+            id: "demo-source".into(),
+            kind: "memory".into(),
+            scope: ConnectorScope::Source,
+            allow_override: vec!["events".into()],
+            default_params: Default::default(),
+            origin: Some("demo".into()),
+        }
+    }
+    fn sink_def(&self) -> ConnectorDef {
+        ConnectorDef {
+            id: "demo-sink".into(),
+            kind: "memory".into(),
+            scope: ConnectorScope::Sink,
+            ..Default::default()
+        }
+    }
+}
+
+#[async_trait]
+impl SourceFactory for DemoConnectorFactory {
+    fn kind(&self) -> &'static str { "memory" }
+
+    async fn build(&self, spec: &SourceSpec, _ctx: &SourceBuildCtx) -> SourceResult<SourceSvcIns> {
+        let source = MemorySource {
+            name: spec.name.clone(),
+            events: self.source_events.clone(),
+            cursor: 0,
+        };
+        let handle = SourceHandle::new(
+            Box::new(source),
+            SourceMeta::new(&spec.name, "memory"),
+        );
+        Ok(SourceSvcIns::new().with_sources(vec![handle]))
+    }
+}
+
+#[async_trait]
+impl SinkFactory for DemoConnectorFactory {
+    fn kind(&self) -> &'static str { "memory" }
+
+    async fn build(&self, _spec: &SinkSpec, _ctx: &SinkBuildCtx) -> SinkResult<SinkHandle> {
+        Ok(SinkHandle::new(Box::new(MemorySink {
+            buffer: self.sink_buffer.clone(),
+        })))
+    }
+}
+```
+
+完整示例代码参见 `wp-connector-api/tests/demo_connector.rs`。
+
+## 6. 实践建议
 
 1. **参数校验前置**：在 `ConnectorKindAdapter::url_to_params` 和 `SinkFactory::validate_spec` 中尽早发现拼写/格式问题，避免运行期才报错。
 2. **幂等与错误传播**：`stop`/`receive`/`ack` 等接口都要求幂等，不要 `unwrap/expect`，统一返回 `SinkResult/SourceResult`。
