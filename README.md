@@ -65,12 +65,8 @@ cargo clippy --all-targets --all-features -D warnings
 
 ## 开源许可
 
-本仓库使用 [Apache License 2.0](LICENSE)。如需二次分发，请保留 License/NOTICE，并在修改时注明。
+本仓库使用 [ELv2](LICENSE)。如需二次分发，请保留 License/NOTICE，并在修改时注明。
 
 ## 开发者声明
-
 - 默认署名：`WarpParse Dev Team`。如需个人发布，可修改 `[workspace.package].authors` 及 `LICENSE` 尾部版权信息。
-- 向仓库提交代码即视为接受 Apache 2.0 许可。
-- 如需额外商用授权或品牌使用，请在 issue 中联系维护团队。
-
 欢迎通过 issue/PR 扩展解析模型、改进 API 或补充文档。

@@ -123,3 +123,190 @@ where
         write!(f, "{}({})", self.meta, self.value)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::DataField;
+
+    // ========== Field creation tests ==========
+
+    #[test]
+    fn test_field_new() {
+        let field: Field<i64> = Field::new(DataType::Digit, "count", 42i64);
+        assert_eq!(field.meta, DataType::Digit);
+        assert_eq!(field.name, "count");
+        assert_eq!(field.value, 42);
+    }
+
+    #[test]
+    fn test_field_new_with_string_conversion() {
+        let field: Field<String> = Field::new(DataType::Chars, String::from("key"), "value");
+        assert_eq!(field.name, "key");
+        assert_eq!(field.value, "value");
+    }
+
+    #[test]
+    fn test_field_new_opt_with_name() {
+        let field: Field<i64> = Field::new_opt(DataType::Digit, Some("num".into()), 100);
+        assert_eq!(field.name, "num");
+        assert_eq!(field.value, 100);
+    }
+
+    #[test]
+    fn test_field_new_opt_without_name() {
+        let field: Field<i64> = Field::new_opt(DataType::Digit, None, 50);
+        // When name is None, it should use meta's string representation
+        assert_eq!(field.name, "digit");
+        assert_eq!(field.value, 50);
+    }
+
+    // ========== Field accessor tests ==========
+
+    #[test]
+    fn test_field_get_name() {
+        let field: Field<i64> = Field::new(DataType::Digit, "test_name", 1);
+        assert_eq!(field.get_name(), "test_name");
+    }
+
+    #[test]
+    fn test_field_clone_name() {
+        let field: Field<i64> = Field::new(DataType::Digit, "original", 1);
+        let cloned = field.clone_name();
+        assert_eq!(cloned, "original");
+        // Verify it's a new String, not a reference
+        assert_eq!(cloned, field.name);
+    }
+
+    #[test]
+    fn test_field_get_meta() {
+        let field: Field<i64> = Field::new(DataType::Float, "val", 1);
+        assert_eq!(field.get_meta(), &DataType::Float);
+    }
+
+    #[test]
+    fn test_field_set_name() {
+        let mut field: Field<i64> = Field::new(DataType::Digit, "old_name", 1);
+        field.set_name("new_name".into());
+        assert_eq!(field.get_name(), "new_name");
+    }
+
+    // ========== ValueRef trait tests ==========
+
+    #[test]
+    fn test_value_ref_trait() {
+        let field: Field<i64> = Field::new(DataType::Digit, "num", 42);
+        assert_eq!(field.value_ref(), &42);
+    }
+
+    // ========== Field<Value> specific tests ==========
+
+    #[test]
+    fn test_field_get_value() {
+        let field: DataField = Field::new(DataType::Digit, "num", Value::Digit(99));
+        assert_eq!(field.get_value(), &Value::Digit(99));
+    }
+
+    #[test]
+    fn test_field_get_value_mut() {
+        let mut field: DataField = Field::new(DataType::Digit, "num", Value::Digit(10));
+        *field.get_value_mut() = Value::Digit(20);
+        assert_eq!(field.get_value(), &Value::Digit(20));
+    }
+
+    // ========== From conversions tests ==========
+
+    #[test]
+    fn test_field_to_rc() {
+        let field: Field<i64> = Field::new(DataType::Digit, "num", 42);
+        let rc_field: Field<Rc<i64>> = field.into();
+
+        assert_eq!(rc_field.name, "num");
+        assert_eq!(rc_field.meta, DataType::Digit);
+        assert_eq!(*rc_field.value, 42);
+    }
+
+    #[test]
+    fn test_field_to_arc() {
+        let field: Field<String> = Field::new(DataType::Chars, "msg", String::from("hello"));
+        let arc_field: Field<Arc<String>> = field.into();
+
+        assert_eq!(arc_field.name, "msg");
+        assert_eq!(arc_field.meta, DataType::Chars);
+        assert_eq!(*arc_field.value, "hello");
+    }
+
+    // ========== Display tests ==========
+
+    #[test]
+    fn test_field_display() {
+        let field: Field<i64> = Field::new(DataType::Digit, "count", 42);
+        let display = format!("{}", field);
+        assert!(display.contains("digit"));
+        assert!(display.contains("42"));
+    }
+
+    #[test]
+    fn test_field_display_chars() {
+        let field: Field<String> = Field::new(DataType::Chars, "msg", String::from("hello"));
+        let display = format!("{}", field);
+        assert!(display.contains("chars"));
+        assert!(display.contains("hello"));
+    }
+
+    // ========== LevelFormatAble tests ==========
+
+    #[test]
+    fn test_level_format_able() {
+        let field: Field<i64> = Field::new(DataType::Digit, "level_test", 123);
+        let mut output = String::new();
+        use std::fmt::Write;
+        // Use a simple formatter wrapper
+        let _ = write!(output, "{}", field);
+        assert!(output.contains("digit"));
+        assert!(output.contains("123"));
+    }
+
+    // ========== Clone and PartialEq tests ==========
+
+    #[test]
+    fn test_field_clone() {
+        let field: Field<i64> = Field::new(DataType::Digit, "num", 42);
+        let cloned = field.clone();
+
+        assert_eq!(field, cloned);
+        assert_eq!(cloned.name, "num");
+        assert_eq!(cloned.value, 42);
+    }
+
+    #[test]
+    fn test_field_partial_eq() {
+        let field1: Field<i64> = Field::new(DataType::Digit, "num", 42);
+        let field2: Field<i64> = Field::new(DataType::Digit, "num", 42);
+        let field3: Field<i64> = Field::new(DataType::Digit, "num", 99);
+
+        assert_eq!(field1, field2);
+        assert_ne!(field1, field3);
+    }
+
+    // ========== Serde tests ==========
+
+    #[test]
+    fn test_field_serde_roundtrip() {
+        let field: Field<i64> = Field::new(DataType::Digit, "serde_test", 123);
+        let json = serde_json::to_string(&field).unwrap();
+        let parsed: Field<i64> = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(field, parsed);
+    }
+
+    #[test]
+    fn test_field_serde_with_string() {
+        let field: Field<String> = Field::new(DataType::Chars, "msg", String::from("test"));
+        let json = serde_json::to_string(&field).unwrap();
+        let parsed: Field<String> = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(field.name, parsed.name);
+        assert_eq!(field.value, parsed.value);
+    }
+}
