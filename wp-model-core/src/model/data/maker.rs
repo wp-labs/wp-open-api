@@ -1,10 +1,10 @@
-use std::net::IpAddr;
-
 use crate::model::{
     DataType, DateTimeValue, DomainT, EmailT, HexT, IdCardT, IgnoreT, Maker, MobilePhoneT,
     UrlValue, Value,
     types::value::{ObjectValue, SymbolValue},
 };
+use arcstr::ArcStr;
+use std::net::IpAddr;
 
 use super::Field;
 
@@ -76,7 +76,7 @@ where
         Self::new(
             DataType::Domain,
             name.into(),
-            T::make(DomainT(domain.into())),
+            T::make(DomainT(ArcStr::from(domain.into()))),
         )
     }
 }
@@ -86,7 +86,11 @@ where
     T: Maker<UrlValue>,
 {
     pub fn from_url<S: Into<String>, V: Into<String>>(name: S, url: V) -> Self {
-        Self::new(DataType::Url, name.into(), T::make(UrlValue(url.into())))
+        Self::new(
+            DataType::Url,
+            name.into(),
+            T::make(UrlValue(ArcStr::from(url.into()))),
+        )
     }
 }
 
@@ -95,7 +99,11 @@ where
     T: Maker<EmailT>,
 {
     pub fn from_email<S: Into<String>, V: Into<String>>(name: S, email: V) -> Self {
-        Self::new(DataType::Email, name.into(), T::make(EmailT(email.into())))
+        Self::new(
+            DataType::Email,
+            name.into(),
+            T::make(EmailT(ArcStr::from(email.into()))),
+        )
     }
 }
 
@@ -107,7 +115,7 @@ where
         Self::new(
             DataType::IdCard,
             name.into(),
-            T::make(IdCardT(id_card.into())),
+            T::make(IdCardT(ArcStr::from(id_card.into()))),
         )
     }
 }
@@ -120,7 +128,7 @@ where
         Self::new(
             DataType::MobilePhone,
             name.into(),
-            T::make(MobilePhoneT(mobile_phone.into())),
+            T::make(MobilePhoneT(ArcStr::from(mobile_phone.into()))),
         )
     }
 }

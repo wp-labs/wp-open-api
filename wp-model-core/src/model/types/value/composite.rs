@@ -1,6 +1,7 @@
 use crate::model::DataField;
 
 use super::Value;
+use arcstr::ArcStr;
 use std::{
     collections::BTreeMap,
     fmt::{Debug, Display},
@@ -8,7 +9,7 @@ use std::{
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct ObjectValue(pub BTreeMap<String, DataField>);
+pub struct ObjectValue(pub BTreeMap<ArcStr, DataField>);
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -29,6 +30,18 @@ impl ObjectValue {
     pub fn new() -> Self {
         ObjectValue(BTreeMap::new())
     }
+
+    pub fn insert<S: Into<ArcStr>>(&mut self, key: S, value: DataField) {
+        self.0.insert(key.into(), value);
+    }
+
+    pub fn get(&self, key: &str) -> Option<&DataField> {
+        self.0.get(key)
+    }
+
+    pub fn get_mut(&mut self, key: &str) -> Option<&mut DataField> {
+        self.0.get_mut(key)
+    }
 }
 
 impl Display for ObjectValue {
@@ -38,7 +51,7 @@ impl Display for ObjectValue {
 }
 
 impl Deref for ObjectValue {
-    type Target = BTreeMap<String, DataField>;
+    type Target = BTreeMap<ArcStr, DataField>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

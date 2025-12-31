@@ -1,3 +1,4 @@
+use arcstr::ArcStr;
 use std::{
     fmt::{Display, Formatter},
     net::IpAddr,
@@ -38,21 +39,21 @@ impl Display for IpNetValue {
 // Comparison impl moved to orion_exp adapters.
 
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-pub struct DomainT(pub String);
+pub struct DomainT(pub ArcStr);
 impl Display for DomainT {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-pub struct UrlValue(pub String);
+pub struct UrlValue(pub ArcStr);
 impl Display for UrlValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-pub struct EmailT(pub String);
+pub struct EmailT(pub ArcStr);
 impl Display for EmailT {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
@@ -137,7 +138,7 @@ mod tests {
     #[test]
     fn test_domain_t_new() {
         let domain = DomainT("example.com".into());
-        assert_eq!(domain.0, "example.com");
+        assert_eq!(domain.0.as_str(), "example.com");
     }
 
     #[test]
@@ -158,7 +159,7 @@ mod tests {
     #[test]
     fn test_url_value_new() {
         let url = UrlValue("https://example.com/path".into());
-        assert_eq!(url.0, "https://example.com/path");
+        assert_eq!(url.0.as_str(), "https://example.com/path");
     }
 
     #[test]
@@ -179,7 +180,7 @@ mod tests {
     #[test]
     fn test_email_t_new() {
         let email = EmailT("user@example.com".into());
-        assert_eq!(email.0, "user@example.com");
+        assert_eq!(email.0.as_str(), "user@example.com");
     }
 
     #[test]
