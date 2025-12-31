@@ -17,7 +17,7 @@ wp-model-core
 
 ### 1.1 Field 与 Record
 
-- `Field<T>`：封装字段名、类型元信息 `DataType` 与值 `T`。
+- `Field<T>`：封装字段名、类型元信息 `DataType` 与值 `T`；字段名内部使用 `ArcStr`，以便 fanout/多 sink 场景下共享。
 - `Record<T>`：字段集合（Vec）。常用别名：
   - `DataField = Field<Value>`
   - `DataRecord = Record<DataField>`
@@ -32,10 +32,13 @@ let f = DataField::from_chars("user", "alice");
 assert_eq!(f.get_name(), "user");
 assert_eq!(f.get_meta(), &DataType::Chars);
 assert_eq!(f.get_value(), &Value::Chars("alice".into()));
+
+let shared = DataField::from_shared_chars("user", arcstr::ArcStr::from("alice"));
+assert_eq!(shared.get_chars(), Some("alice"));
 ```
 
 创建方法（位于 `model/data/maker.rs`）：
-- `from_bool/from_chars/from_digit/from_float` 等基础类型构造。
+- `from_bool/from_chars/from_shared_chars/from_digit/from_float` 等基础类型构造。
 - `from_ip/from_domain/from_url` 等语义类型构造。
 - `from_arr/from_obj` 支持复合类型。
 

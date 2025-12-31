@@ -5,7 +5,9 @@ mod primitive;
 use crate::model::DataField;
 use crate::model::data::field::Field;
 use crate::traits::AsValueRef;
+use arcstr::ArcStr;
 use std::fmt::{Debug, Display, Formatter};
+use std::mem;
 use std::net::IpAddr;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -16,11 +18,14 @@ pub use network::{DomainT, EmailT, IpNetValue, UrlValue};
 pub use primitive::{DateTimeValue, DigitValue, FloatValue, HexT};
 use serde::{Deserialize, Serialize};
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
+pub struct SymbolValue(pub ArcStr);
+#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
 pub enum Value {
     // 基本类型
     Null,
     Bool(bool),
     Chars(String),
+    SChars(ArcStr),
     Float(FloatValue),
     Digit(DigitValue),
 
@@ -39,7 +44,7 @@ pub enum Value {
     //Obj(BTreeMap<String, Field<Value>>),
     Obj(ObjectValue),
     Array(Vec<Field<Value>>),
-    Symbol(String),
+    Symbol(ArcStr),
     Ignore(IgnoreT),
 }
 
@@ -49,6 +54,7 @@ impl AsValueRef<Value> for Value {
     }
 
     fn as_value_mutref(&mut self) -> &mut Value {
+        self.ensure_chars_unique();
         self
     }
 }
@@ -110,6 +116,12 @@ impl From<IgnoreT> for Value {
     }
 }
 
+impl From<SymbolValue> for Value {
+    fn from(value: SymbolValue) -> Self {
+        Value::Symbol(value.0)
+    }
+}
+
 impl From<bool> for Value {
     fn from(value: bool) -> Self {
         Value::Bool(value)
@@ -118,6 +130,30 @@ impl From<bool> for Value {
 impl From<String> for Value {
     fn from(value: String) -> Self {
         Self::Chars(value)
+    }
+}
+
+impl From<ArcStr> for Value {
+    fn from(value: ArcStr) -> Self {
+        Self::SChars(value)
+    }
+}
+
+impl From<String> for SymbolValue {
+    fn from(value: String) -> Self {
+        SymbolValue(ArcStr::from(value))
+    }
+}
+
+impl From<&str> for SymbolValue {
+    fn from(value: &str) -> Self {
+        SymbolValue(ArcStr::from(value))
+    }
+}
+
+impl From<ArcStr> for SymbolValue {
+    fn from(value: ArcStr) -> Self {
+        SymbolValue(value)
     }
 }
 
@@ -225,6 +261,9 @@ impl Display for Value {
             Value::Chars(chars) => {
                 write!(f, "{}", chars)
             }
+            Value::SChars(chars) => {
+                write!(f, "{}", chars)
+            }
             Value::Hex(hex) => {
                 write!(f, "{}", hex)
             }
@@ -253,11 +292,56 @@ impl Display for Value {
     }
 }
 
+impl Value {
+    /// 以 `&str` 形式读取文本字段。
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Value::Chars(s) => Some(s.as_str()),
+            Value::SChars(s) => Some(s.as_str()),
+            _ => None,
+        }
+    }
+
+    /// 返回一个可写的 `String`，必要时会复制共享内容，保证写入不会影响其他引用。
+    pub fn ensure_owned_chars(&mut self) -> Option<&mut String> {
+        self.ensure_chars_unique();
+        match self {
+            Value::Chars(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    /// 将 `Chars(String)`/`SChars(ArcStr)` 统一转成共享存储。
+    pub fn into_shared_chars(self) -> Self {
+        match self {
+            Value::Chars(s) => Value::SChars(ArcStr::from(s)),
+            other => other,
+        }
+    }
+
+    /// 就地将 `Chars` 转换为共享字符串。
+    pub fn make_shared_chars(&mut self) {
+        if let Value::Chars(s) = self {
+            let owned = mem::take(s);
+            *self = Value::SChars(ArcStr::from(owned));
+        }
+    }
+
+    fn ensure_chars_unique(&mut self) {
+        if let Value::SChars(_) = self {
+            if let Value::SChars(shared) = mem::replace(self, Value::Null) {
+                *self = Value::Chars(shared.to_string());
+            }
+        }
+    }
+}
+
 // Comparison impls moved to orion_exp adapters to decouple core from orion_exp.
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use arcstr::ArcStr;
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
     #[test]
@@ -313,7 +397,7 @@ mod tests {
         assert_eq!(format!("{}", Value::Chars("test".into())), "test");
         assert_eq!(format!("{}", Value::Digit(123)), "123");
         assert_eq!(format!("{}", Value::Float(1.5)), "1.5");
-        assert_eq!(format!("{}", Value::Symbol("sym".into())), "sym");
+        assert_eq!(format!("{}", Value::Symbol(ArcStr::from("sym"))), "sym");
         assert_eq!(format!("{}", Value::Ignore(IgnoreT::default())), "");
     }
 
@@ -324,6 +408,44 @@ mod tests {
 
         let hex = HexT(255);
         assert_eq!(format!("{}", Value::Hex(hex)), "0xFF");
+    }
+
+    #[test]
+    fn test_arcstr_roundtrip() {
+        let arc = ArcStr::from("shared-value");
+        let mut v: Value = arc.clone().into();
+        assert!(matches!(v, Value::SChars(_)));
+        assert_eq!(v.as_str(), Some("shared-value"));
+
+        v.make_shared_chars();
+        assert!(matches!(v, Value::SChars(_)));
+
+        let mut detached = v.clone();
+        {
+            let mutable = detached.ensure_owned_chars().expect("string");
+            mutable.push_str("-mut");
+        }
+        assert_eq!(detached.as_str(), Some("shared-value-mut"));
+        assert!(matches!(detached, Value::Chars(_)));
+    }
+
+    #[test]
+    fn test_into_shared_chars() {
+        let original = Value::from(String::from("hello"));
+        let shared = original.into_shared_chars();
+        assert!(matches!(shared, Value::SChars(_)));
+    }
+
+    #[test]
+    fn test_as_value_mutref_detaches_shared_chars() {
+        let arc = ArcStr::from("abc");
+        let mut v = Value::SChars(arc.clone());
+        if let Value::Chars(chars) = v.as_value_mutref() {
+            chars.push('d');
+        } else {
+            panic!("expected Chars variant after detach");
+        }
+        assert_eq!(v.as_str(), Some("abcd"));
     }
 
     #[test]

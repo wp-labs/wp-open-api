@@ -1,5 +1,6 @@
 use crate::model::DataType;
 use crate::model::format::LevelFormatAble;
+use arcstr::ArcStr;
 
 use crate::model::Value;
 use crate::traits::AsValueRef;
@@ -12,7 +13,7 @@ use std::sync::Arc;
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Field<T> {
     pub meta: DataType,
-    pub name: String,
+    pub name: ArcStr,
     pub value: T,
 }
 
@@ -51,7 +52,7 @@ impl<T> From<Field<T>> for Field<Arc<T>> {
 }
 
 impl<T> Field<T> {
-    pub fn new<S: Into<String>, V: Into<T>>(meta: DataType, name: S, value: V) -> Self {
+    pub fn new<S: Into<ArcStr>, V: Into<T>>(meta: DataType, name: S, value: V) -> Self {
         Self {
             meta,
             name: name.into(),
@@ -60,11 +61,9 @@ impl<T> Field<T> {
     }
 
     pub fn new_opt(meta: DataType, name: Option<String>, value: T) -> Self {
-        let name = if let Some(name) = name {
-            name
-        } else {
-            From::from(&meta)
-        };
+        let name = name
+            .map(ArcStr::from)
+            .unwrap_or_else(|| ArcStr::from(String::from(&meta)));
         Field { meta, name, value }
     }
 
@@ -78,8 +77,22 @@ impl<T> Field<T> {
         &self.meta
     }
 
-    pub fn set_name(&mut self, name: String) {
-        self.name = name
+    pub fn set_name<S: Into<ArcStr>>(&mut self, name: S) {
+        self.name = name.into()
+    }
+}
+
+impl Field<Value> {
+    pub fn from_shared_chars<S: Into<String>>(name: S, val: ArcStr) -> Self {
+        Self::new(DataType::Chars, name.into(), Value::SChars(val))
+    }
+
+    pub fn get_chars(&self) -> Option<&str> {
+        self.value.as_str()
+    }
+
+    pub fn get_chars_mut(&mut self) -> Option<&mut String> {
+        self.value.ensure_owned_chars()
     }
 }
 impl<T> Field<T>
@@ -135,21 +148,21 @@ mod tests {
     fn test_field_new() {
         let field: Field<i64> = Field::new(DataType::Digit, "count", 42i64);
         assert_eq!(field.meta, DataType::Digit);
-        assert_eq!(field.name, "count");
+        assert_eq!(field.get_name(), "count");
         assert_eq!(field.value, 42);
     }
 
     #[test]
     fn test_field_new_with_string_conversion() {
         let field: Field<String> = Field::new(DataType::Chars, String::from("key"), "value");
-        assert_eq!(field.name, "key");
+        assert_eq!(field.get_name(), "key");
         assert_eq!(field.value, "value");
     }
 
     #[test]
     fn test_field_new_opt_with_name() {
         let field: Field<i64> = Field::new_opt(DataType::Digit, Some("num".into()), 100);
-        assert_eq!(field.name, "num");
+        assert_eq!(field.get_name(), "num");
         assert_eq!(field.value, 100);
     }
 
@@ -157,7 +170,7 @@ mod tests {
     fn test_field_new_opt_without_name() {
         let field: Field<i64> = Field::new_opt(DataType::Digit, None, 50);
         // When name is None, it should use meta's string representation
-        assert_eq!(field.name, "digit");
+        assert_eq!(field.get_name(), "digit");
         assert_eq!(field.value, 50);
     }
 
@@ -175,7 +188,7 @@ mod tests {
         let cloned = field.clone_name();
         assert_eq!(cloned, "original");
         // Verify it's a new String, not a reference
-        assert_eq!(cloned, field.name);
+        assert_eq!(cloned, field.get_name());
     }
 
     #[test]
@@ -187,7 +200,7 @@ mod tests {
     #[test]
     fn test_field_set_name() {
         let mut field: Field<i64> = Field::new(DataType::Digit, "old_name", 1);
-        field.set_name("new_name".into());
+        field.set_name("new_name");
         assert_eq!(field.get_name(), "new_name");
     }
 
@@ -214,6 +227,28 @@ mod tests {
         assert_eq!(field.get_value(), &Value::Digit(20));
     }
 
+    #[test]
+    fn test_field_from_shared_chars() {
+        let arc = ArcStr::from("hello");
+        let field: DataField = Field::from_shared_chars("msg", arc.clone());
+        assert_eq!(field.get_name(), "msg");
+        assert_eq!(field.get_meta(), &DataType::Chars);
+        assert!(matches!(field.value, Value::SChars(_)));
+        assert_eq!(field.get_chars(), Some("hello"));
+    }
+
+    #[test]
+    fn test_field_get_chars_mut() {
+        let arc = ArcStr::from("foo");
+        let mut field: DataField = Field::from_shared_chars("msg", arc);
+        {
+            let value = field.get_chars_mut().expect("mutable");
+            value.push_str("-bar");
+        }
+        assert!(matches!(field.value, Value::Chars(_)));
+        assert_eq!(field.get_chars(), Some("foo-bar"));
+    }
+
     // ========== From conversions tests ==========
 
     #[test]
@@ -221,7 +256,7 @@ mod tests {
         let field: Field<i64> = Field::new(DataType::Digit, "num", 42);
         let rc_field: Field<Rc<i64>> = field.into();
 
-        assert_eq!(rc_field.name, "num");
+        assert_eq!(rc_field.get_name(), "num");
         assert_eq!(rc_field.meta, DataType::Digit);
         assert_eq!(*rc_field.value, 42);
     }
@@ -231,7 +266,7 @@ mod tests {
         let field: Field<String> = Field::new(DataType::Chars, "msg", String::from("hello"));
         let arc_field: Field<Arc<String>> = field.into();
 
-        assert_eq!(arc_field.name, "msg");
+        assert_eq!(arc_field.get_name(), "msg");
         assert_eq!(arc_field.meta, DataType::Chars);
         assert_eq!(*arc_field.value, "hello");
     }
@@ -275,7 +310,7 @@ mod tests {
         let cloned = field.clone();
 
         assert_eq!(field, cloned);
-        assert_eq!(cloned.name, "num");
+        assert_eq!(cloned.get_name(), "num");
         assert_eq!(cloned.value, 42);
     }
 

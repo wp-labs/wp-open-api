@@ -8,6 +8,7 @@ license.workspace = true
 name = "wp_model_core"
 
 [dependencies]
+arcstr = { workspace = true }
 serde = { workspace = true }
 serde_derive = { workspace = true }
 serde_json = { workspace = true }

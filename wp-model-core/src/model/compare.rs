@@ -10,7 +10,8 @@ where
         match self.get_value() {
             Value::Bool(v) => v.is_support(op),
             Value::Chars(v) => v.is_support(op),
-            Value::Symbol(v) => v.is_support(op),
+            Value::SChars(v) => v.to_string().is_support(op),
+            Value::Symbol(v) => v.to_string().is_support(op),
             Value::Time(v) => v.is_support(op),
             Value::Digit(v) => v.is_support(op),
             Value::Hex(v) => v.is_support(op),
@@ -39,7 +40,12 @@ where
         }
         match (self.get_value(), other.get_value()) {
             (Value::Chars(v1), Value::Chars(v2)) => v1.compare_with(v2, op),
-            (Value::Symbol(v1), Value::Symbol(v2)) => v1.compare_with(v2, op),
+            (Value::SChars(v1), Value::Chars(v2)) => v1.to_string().compare_with(v2, op),
+            (Value::Chars(v1), Value::SChars(v2)) => v1.compare_with(&v2.to_string(), op),
+            (Value::SChars(v1), Value::SChars(v2)) => {
+                v1.to_string().compare_with(&v2.to_string(), op)
+            }
+            (Value::Symbol(v1), Value::Symbol(v2)) => v1.to_string().compare_with(&v2.to_string(), op),
             (Value::Time(v1), Value::Time(v2)) => v1.compare_with(v2, op),
             (Value::Bool(v1), Value::Bool(v2)) => v1.compare_with(v2, op),
             (Value::Digit(v1), Value::Digit(v2)) => v1.compare_with(v2, op),

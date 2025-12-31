@@ -17,7 +17,7 @@ wp-model-core
 
 ### 1.1 Field & Record
 
-- `Field<T>` wraps the name, `DataType` metadata, and the actual value `T`.
+- `Field<T>` wraps the name, `DataType` metadata, and the actual value `T`; the name itself is stored as an `ArcStr` so multiple sinks can share it at fanout time.
 - `Record<T>` stores a vector of fields. Common aliases:
   - `DataField = Field<Value>`
   - `DataRecord = Record<DataField>`
@@ -32,10 +32,13 @@ let f = DataField::from_chars("user", "alice");
 assert_eq!(f.get_name(), "user");
 assert_eq!(f.get_meta(), &DataType::Chars);
 assert_eq!(f.get_value(), &Value::Chars("alice".into()));
+
+let shared = DataField::from_shared_chars("user", arcstr::ArcStr::from("alice"));
+assert_eq!(shared.get_chars(), Some("alice"));
 ```
 
 Factory methods live in `model/data/maker.rs`:
-- `from_bool`, `from_chars`, `from_digit`, `from_float` for primitive types.
+- `from_bool`, `from_chars`, `from_shared_chars`, `from_digit`, `from_float` for primitives.
 - `from_ip`, `from_domain`, `from_url`, etc. for semantic types.
 - `from_arr`, `from_obj` for composite values.
 

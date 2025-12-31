@@ -4,7 +4,8 @@ macro_rules! value_match {
         match $obj {
             $crate::model::Value::Bool(x) => $what(x),
             $crate::model::Value::Chars(x) => $what(x),
-            $crate::model::Value::Symbol(x) => $what(x),
+            $crate::model::Value::SChars(x) => $what(x.to_string()),
+            $crate::model::Value::Symbol(x) => $what(x.to_string()),
             $crate::model::Value::Digit(x) => $what(x),
             $crate::model::Value::Time(x) => $what(x),
             $crate::model::Value::Hex(x) => $what(x),
@@ -25,7 +26,8 @@ macro_rules! value_match {
         match $obj {
             $crate::model::Value::Bool(x) => $what(x, $a1),
             $crate::model::Value::Chars(x) => $what(x, $a1),
-            $crate::model::Value::Symbol(x) => $what(x, $a1),
+            $crate::model::Value::SChars(x) => $what(x.to_string(), $a1),
+            $crate::model::Value::Symbol(x) => $what(x.to_string(), $a1),
             $crate::model::Value::Digit(x) => $what(x, $a1),
             $crate::model::Value::Time(x) => $what(x, $a1),
             $crate::model::Value::Hex(x) => $what(x, $a1),
@@ -46,7 +48,8 @@ macro_rules! value_match {
         match $obj {
             $crate::model::Value::Bool(x) => $what(x, $a1, $a2),
             $crate::model::Value::Chars(x) => $what(x, $a1, $a2),
-            $crate::model::Value::Symbol(x) => $what(x, $a1, $a2),
+            $crate::model::Value::SChars(x) => $what(x.to_string(), $a1, $a2),
+            $crate::model::Value::Symbol(x) => $what(x.to_string(), $a1, $a2),
             $crate::model::Value::Digit(x) => $what(x, $a1, $a2),
             $crate::model::Value::Time(x) => $what(x, $a1, $a2),
             $crate::model::Value::Hex(x) => $what(x, $a1, $a2),
@@ -71,7 +74,8 @@ macro_rules! format_value {
         match $obj {
             $crate::model::Value::Bool(x) => $what(x).fmt($a1),
             $crate::model::Value::Chars(x) => $what(x).fmt($a1),
-            $crate::model::Value::Symbol(x) => $what(x).fmt($a1),
+            $crate::model::Value::SChars(x) => $what(x.to_string()).fmt($a1),
+            $crate::model::Value::Symbol(x) => $what(x.to_string()).fmt($a1),
             $crate::model::Value::Digit(x) => $what(x).fmt($a1),
             $crate::model::Value::Time(x) => $what(x).fmt($a1),
             $crate::model::Value::Hex(x) => $what(x).fmt($a1),
