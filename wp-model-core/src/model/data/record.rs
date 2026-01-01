@@ -20,8 +20,8 @@ pub trait RecordItem {
 
 /// 为 Record 生成字段所需的工厂方法
 pub trait RecordItemFactory {
-    fn from_digit<S: Into<String>>(name: S, val: i64) -> Self;
-    fn from_ip<S: Into<String>>(name: S, ip: IpAddr) -> Self;
+    fn from_digit<S: Into<ArcStr>>(name: S, val: i64) -> Self;
+    fn from_ip<S: Into<ArcStr>>(name: S, ip: IpAddr) -> Self;
     fn from_chars<S: Into<ArcStr>>(name: S, val: S) -> Self;
 }
 
@@ -156,11 +156,11 @@ impl<V> RecordItemFactory for Field<V>
 where
     V: Maker<i64> + Maker<ArcStr> + Maker<IpAddr>,
 {
-    fn from_digit<S: Into<String>>(name: S, val: i64) -> Self {
+    fn from_digit<S: Into<ArcStr>>(name: S, val: i64) -> Self {
         Field::from_digit(name, val)
     }
 
-    fn from_ip<S: Into<String>>(name: S, ip: IpAddr) -> Self {
+    fn from_ip<S: Into<ArcStr>>(name: S, ip: IpAddr) -> Self {
         Field::from_ip(name, ip)
     }
 
