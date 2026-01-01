@@ -7,7 +7,6 @@ use crate::model::data::field::Field;
 use crate::traits::AsValueRef;
 use arcstr::ArcStr;
 use std::fmt::{Debug, Display, Formatter};
-use std::mem;
 use std::net::IpAddr;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -24,8 +23,7 @@ pub enum Value {
     // 基本类型
     Null,
     Bool(bool),
-    Chars(String),
-    SChars(ArcStr),
+    Chars(ArcStr),
     Float(FloatValue),
     Digit(DigitValue),
 
@@ -127,15 +125,9 @@ impl From<bool> for Value {
         Value::Bool(value)
     }
 }
-impl From<String> for Value {
-    fn from(value: String) -> Self {
-        Self::Chars(value)
-    }
-}
-
 impl From<ArcStr> for Value {
     fn from(value: ArcStr) -> Self {
-        Self::SChars(value)
+        Self::Chars(value)
     }
 }
 
@@ -159,7 +151,7 @@ impl From<ArcStr> for SymbolValue {
 
 impl From<&str> for Value {
     fn from(value: &str) -> Self {
-        Self::Chars(value.to_string())
+        Self::Chars(value.into())
     }
 }
 
@@ -261,9 +253,6 @@ impl Display for Value {
             Value::Chars(chars) => {
                 write!(f, "{}", chars)
             }
-            Value::SChars(chars) => {
-                write!(f, "{}", chars)
-            }
             Value::Hex(hex) => {
                 write!(f, "{}", hex)
             }
@@ -297,42 +286,30 @@ impl Value {
     pub fn as_str(&self) -> Option<&str> {
         match self {
             Value::Chars(s) => Some(s.as_str()),
-            Value::SChars(s) => Some(s.as_str()),
             _ => None,
         }
     }
 
-    /// 返回一个可写的 `String`，必要时会复制共享内容，保证写入不会影响其他引用。
-    pub fn ensure_owned_chars(&mut self) -> Option<&mut String> {
-        self.ensure_chars_unique();
+    /// 返回一个可写的 `ArcStr`。
+    pub fn ensure_owned_chars(&mut self) -> Option<&mut ArcStr> {
         match self {
             Value::Chars(s) => Some(s),
             _ => None,
         }
     }
 
-    /// 将 `Chars(String)`/`SChars(ArcStr)` 统一转成共享存储。
+    /// Chars 已经是共享存储，此方法保留用于兼容性。
     pub fn into_shared_chars(self) -> Self {
-        match self {
-            Value::Chars(s) => Value::SChars(ArcStr::from(s)),
-            other => other,
-        }
+        self
     }
 
-    /// 就地将 `Chars` 转换为共享字符串。
+    /// Chars 已经是共享存储，此方法保留用于兼容性。
     pub fn make_shared_chars(&mut self) {
-        if let Value::Chars(s) = self {
-            let owned = mem::take(s);
-            *self = Value::SChars(ArcStr::from(owned));
-        }
+        // No-op: Chars is already ArcStr
     }
 
     fn ensure_chars_unique(&mut self) {
-        if let Value::SChars(_) = self {
-            if let Value::SChars(shared) = mem::replace(self, Value::Null) {
-                *self = Value::Chars(shared.to_string());
-            }
-        }
+        // No-op: ArcStr handles uniqueness internally
     }
 }
 
@@ -350,13 +327,13 @@ mod tests {
         let v: Value = true.into();
         assert_eq!(v, Value::Bool(true));
 
-        // String
-        let v: Value = String::from("hello").into();
-        assert_eq!(v, Value::Chars("hello".to_string()));
+        // ArcStr
+        let v: Value = ArcStr::from("hello").into();
+        assert_eq!(v, Value::Chars(ArcStr::from("hello")));
 
         // &str
         let v: Value = "world".into();
-        assert_eq!(v, Value::Chars("world".to_string()));
+        assert_eq!(v, Value::Chars(ArcStr::from("world")));
 
         // i64
         let v: Value = 42i64.into();
@@ -394,7 +371,7 @@ mod tests {
         assert_eq!(format!("{}", Value::Null), "NULL");
         assert_eq!(format!("{}", Value::Bool(true)), "true");
         assert_eq!(format!("{}", Value::Bool(false)), "false");
-        assert_eq!(format!("{}", Value::Chars("test".into())), "test");
+        assert_eq!(format!("{}", Value::Chars(ArcStr::from("test"))), "test");
         assert_eq!(format!("{}", Value::Digit(123)), "123");
         assert_eq!(format!("{}", Value::Float(1.5)), "1.5");
         assert_eq!(format!("{}", Value::Symbol(ArcStr::from("sym"))), "sym");
@@ -413,39 +390,30 @@ mod tests {
     #[test]
     fn test_arcstr_roundtrip() {
         let arc = ArcStr::from("shared-value");
-        let mut v: Value = arc.clone().into();
-        assert!(matches!(v, Value::SChars(_)));
+        let v: Value = arc.clone().into();
+        assert!(matches!(v, Value::Chars(_)));
         assert_eq!(v.as_str(), Some("shared-value"));
 
-        v.make_shared_chars();
-        assert!(matches!(v, Value::SChars(_)));
-
-        let mut detached = v.clone();
-        {
-            let mutable = detached.ensure_owned_chars().expect("string");
-            mutable.push_str("-mut");
-        }
-        assert_eq!(detached.as_str(), Some("shared-value-mut"));
-        assert!(matches!(detached, Value::Chars(_)));
+        let shared = v.into_shared_chars();
+        assert!(matches!(shared, Value::Chars(_)));
+        assert_eq!(shared.as_str(), Some("shared-value"));
     }
 
     #[test]
     fn test_into_shared_chars() {
-        let original = Value::from(String::from("hello"));
+        let original = Value::from(ArcStr::from("hello"));
         let shared = original.into_shared_chars();
-        assert!(matches!(shared, Value::SChars(_)));
+        assert!(matches!(shared, Value::Chars(_)));
+        assert_eq!(shared.as_str(), Some("hello"));
     }
 
     #[test]
-    fn test_as_value_mutref_detaches_shared_chars() {
+    fn test_as_value_mutref_chars() {
         let arc = ArcStr::from("abc");
-        let mut v = Value::SChars(arc.clone());
-        if let Value::Chars(chars) = v.as_value_mutref() {
-            chars.push('d');
-        } else {
-            panic!("expected Chars variant after detach");
-        }
-        assert_eq!(v.as_str(), Some("abcd"));
+        let mut v = Value::Chars(arc.clone());
+        // Chars is already ArcStr, so it remains Chars
+        assert!(matches!(v.as_value_mutref(), Value::Chars(_)));
+        assert_eq!(v.as_str(), Some("abc"));
     }
 
     #[test]
@@ -459,8 +427,8 @@ mod tests {
 
     #[test]
     fn test_as_value_ref_rc() {
-        let v = Rc::new(Value::Chars("rc".into()));
-        assert_eq!(v.as_value_ref(), &Value::Chars("rc".into()));
+        let v = Rc::new(Value::Chars(ArcStr::from("rc")));
+        assert_eq!(v.as_value_ref(), &Value::Chars(ArcStr::from("rc")));
     }
 
     #[test]
@@ -474,8 +442,8 @@ mod tests {
         let v: Value = Maker::make(42i64);
         assert_eq!(v, Value::Digit(42));
 
-        let rc: Rc<Value> = Maker::make("hello");
-        assert_eq!(*rc, Value::Chars("hello".into()));
+        let rc: Rc<Value> = Maker::make(ArcStr::from("hello"));
+        assert_eq!(*rc, Value::Chars(ArcStr::from("hello")));
     }
 
     #[test]

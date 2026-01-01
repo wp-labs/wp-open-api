@@ -84,14 +84,14 @@ impl<T> Field<T> {
 
 impl Field<Value> {
     pub fn from_shared_chars<S: Into<String>>(name: S, val: ArcStr) -> Self {
-        Self::new(DataType::Chars, name.into(), Value::SChars(val))
+        Self::new(DataType::Chars, name.into(), Value::Chars(val))
     }
 
     pub fn get_chars(&self) -> Option<&str> {
         self.value.as_str()
     }
 
-    pub fn get_chars_mut(&mut self) -> Option<&mut String> {
+    pub fn get_chars_mut(&mut self) -> Option<&mut ArcStr> {
         self.value.ensure_owned_chars()
     }
 }
@@ -233,7 +233,7 @@ mod tests {
         let field: DataField = Field::from_shared_chars("msg", arc.clone());
         assert_eq!(field.get_name(), "msg");
         assert_eq!(field.get_meta(), &DataType::Chars);
-        assert!(matches!(field.value, Value::SChars(_)));
+        assert!(matches!(field.value, Value::Chars(_)));
         assert_eq!(field.get_chars(), Some("hello"));
     }
 
@@ -243,7 +243,8 @@ mod tests {
         let mut field: DataField = Field::from_shared_chars("msg", arc);
         {
             let value = field.get_chars_mut().expect("mutable");
-            value.push_str("-bar");
+            // ArcStr is immutable, so we replace it with a new one
+            *value = ArcStr::from(format!("{}-bar", value.as_str()));
         }
         assert!(matches!(field.value, Value::Chars(_)));
         assert_eq!(field.get_chars(), Some("foo-bar"));

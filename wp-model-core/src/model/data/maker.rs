@@ -19,9 +19,9 @@ where
 
 impl<T> Field<T>
 where
-    T: Maker<String>,
+    T: Maker<ArcStr>,
 {
-    pub fn from_chars<S: Into<String>>(name: S, val: S) -> Self {
+    pub fn from_chars<S: Into<ArcStr>>(name: S, val: S) -> Self {
         Self::new(DataType::Chars, name.into(), T::make(val.into()))
     }
 }
@@ -29,7 +29,7 @@ impl<T> Field<T>
 where
     T: Maker<Value>,
 {
-    pub fn from_symbol<S: Into<String>>(name: S, val: S) -> Self {
+    pub fn from_symbol<S: Into<ArcStr>>(name: S, val: S) -> Self {
         let value = SymbolValue::from(val.into());
         Self::new(DataType::Symbol, name.into(), T::make(value.into()))
     }
@@ -72,7 +72,7 @@ impl<T> Field<T>
 where
     T: Maker<DomainT>,
 {
-    pub fn from_domain<S: Into<String>, V: Into<String>>(name: S, domain: V) -> Self {
+    pub fn from_domain<S: Into<ArcStr>, V: Into<ArcStr>>(name: S, domain: V) -> Self {
         Self::new(
             DataType::Domain,
             name.into(),
@@ -179,7 +179,7 @@ impl Value {
         match self {
             Value::Null => "Null",
             Value::Bool(_) => "Bool",
-            Value::Chars(_) | Value::SChars(_) => "Chars",
+            Value::Chars(_) => "Chars",
             Value::Symbol(_) => "Symbol",
             Value::Digit(_) => "Digit",
             Value::Time(_) => "Time",
@@ -213,7 +213,6 @@ impl Value {
             Value::IdCard(v) => v.0.is_empty(),
             Value::MobilePhone(v) => v.0.is_empty(),
             Value::Chars(v) => v.is_empty(),
-            Value::SChars(v) => v.is_empty(),
             Value::Obj(v) => v.is_empty(),
             Value::Array(v) => v.is_empty(),
             Value::Symbol(v) => v.is_empty(),
@@ -246,7 +245,7 @@ mod tests {
         let field: DataField = Field::from_chars("message", "hello");
         assert_eq!(field.get_name(), "message");
         assert_eq!(field.meta, DataType::Chars);
-        assert_eq!(field.value, Value::Chars("hello".into()));
+        assert_eq!(field.value, Value::Chars(ArcStr::from("hello")));
     }
 
     #[test]
@@ -384,8 +383,7 @@ mod tests {
     fn test_value_tag() {
         assert_eq!(Value::Null.tag(), "Null");
         assert_eq!(Value::Bool(true).tag(), "Bool");
-        assert_eq!(Value::Chars("x".into()).tag(), "Chars");
-        assert_eq!(Value::SChars(ArcStr::from("x")).tag(), "Chars");
+        assert_eq!(Value::Chars(ArcStr::from("x")).tag(), "Chars");
         assert_eq!(Value::Symbol(ArcStr::from("x")).tag(), "Symbol");
         assert_eq!(Value::Digit(1).tag(), "Digit");
         assert_eq!(Value::Float(1.0).tag(), "Float");
@@ -429,8 +427,7 @@ mod tests {
     #[test]
     fn test_is_empty_string_types() {
         // Empty strings
-        assert!(Value::Chars("".into()).is_empty());
-        assert!(Value::SChars(ArcStr::from("")).is_empty());
+        assert!(Value::Chars(ArcStr::from("")).is_empty());
         assert!(Value::Symbol(ArcStr::from("")).is_empty());
         assert!(Value::Domain(DomainT("".into())).is_empty());
         assert!(Value::Url(UrlValue("".into())).is_empty());
@@ -439,8 +436,7 @@ mod tests {
         assert!(Value::MobilePhone(MobilePhoneT("".into())).is_empty());
 
         // Non-empty strings
-        assert!(!Value::Chars("x".into()).is_empty());
-        assert!(!Value::SChars(ArcStr::from("x")).is_empty());
+        assert!(!Value::Chars(ArcStr::from("x")).is_empty());
         assert!(!Value::Symbol(ArcStr::from("x")).is_empty());
         assert!(!Value::Domain(DomainT("x".into())).is_empty());
         assert!(!Value::Url(UrlValue("x".into())).is_empty());
