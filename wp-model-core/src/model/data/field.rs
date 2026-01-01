@@ -60,10 +60,8 @@ impl<T> Field<T> {
         }
     }
 
-    pub fn new_opt(meta: DataType, name: Option<String>, value: T) -> Self {
-        let name = name
-            .map(ArcStr::from)
-            .unwrap_or_else(|| ArcStr::from(String::from(&meta)));
+    pub fn new_opt(meta: DataType, name: Option<ArcStr>, value: T) -> Self {
+        let name = name.unwrap_or_else(|| ArcStr::from(String::from(&meta)));
         Field { meta, name, value }
     }
 
@@ -83,7 +81,7 @@ impl<T> Field<T> {
 }
 
 impl Field<Value> {
-    pub fn from_shared_chars<S: Into<String>>(name: S, val: ArcStr) -> Self {
+    pub fn from_shared_chars<S: Into<ArcStr>>(name: S, val: ArcStr) -> Self {
         Self::new(DataType::Chars, name.into(), Value::Chars(val))
     }
 
