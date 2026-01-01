@@ -1,6 +1,6 @@
 # wp-model-core Developer Guide
 
-`wp-model-core` exposes the core data model used across warp-parse: fields, records, value types, formatting helpers, and TagSet utilities. This document walks through the major modules and common usage patterns.
+`wp-model-core` exposes the core data model used across warp-parse: fields, records, value types, and formatting helpers. This document walks through the major modules and common usage patterns.
 
 ## 1. Module Overview
 
@@ -93,18 +93,22 @@ Tip: `array` must include the subtype (e.g., `array/json`). Otherwise `MetaErr::
 
 ## 6. Utilities
 
-- `TagSet`: a lightweight key/value collection backed by a sorted `SmallVec` (up to 16 entries stored on the stack). It exposes `append`, `set_tag`, zero-copy `get(&str) -> Option<&str>`, and `to_tdos()` for converting tags into `Vec<DataField>` before writing them to a record:
+- **`TagSet` (Deprecated)**: ⚠️ **This type is deprecated. Please use `Tags` from `wp-connector-api::runtime::source::types` instead.**
+
+  `TagSet` was a lightweight key/value collection backed by a sorted `SmallVec` (up to 16 entries stored on the stack). It has been replaced by `Tags` which provides the same functionality with better API design:
 
   ```rust
-  use wp_model_core::model::{DataField, TagSet};
-
+  // Old (deprecated):
+  use wp_model_core::model::TagSet;
   let mut tags = TagSet::default();
   tags.append("env", "prod");
   tags.set_tag("stage", "sink".into());
-  assert_eq!(tags.get("env"), Some("prod"));
 
-  let mut record: DataRecord = vec![DataField::from_chars("message", "hi")].into();
-  record.items.append(&mut tags.to_tdos());
+  // New (recommended):
+  use wp_connector_api::runtime::source::types::Tags;
+  let mut tags = Tags::new();
+  tags.set("env", "prod");
+  tags.set("stage", "sink");
   ```
 
 - `LevelFormatAble` / `format_value!`: helpers for pretty-printing nested structures.

@@ -1,6 +1,6 @@
 # wp-model-core 开发指南
 
-`wp-model-core` 提供 warp-pase 的核心数据模型：字段、记录、值类型及相关工具（格式化、TagSet 等）。本指南概述主要模块并给出常见用例。
+`wp-model-core` 提供 warp-pase 的核心数据模型：字段、记录、值类型及相关工具（格式化等）。本指南概述主要模块并给出常见用例。
 
 ## 1. 数据结构总览
 
@@ -93,18 +93,22 @@ assert_eq!(DataType::from("array/json").unwrap(), DataType::Array("json".into())
 
 ## 6. 辅助工具
 
-- `TagSet`：轻量 KV 集合，内部使用排序 `SmallVec`（最多 16 项走栈内存），提供 `set_tag/append`、零拷贝的 `get(&str) -> Option<&str>` 以及 `to_tdos()`。常用于把源/运行时标签注入 `DataRecord`：
+- **`TagSet`（已废弃）**：⚠️ **此类型已被标记为废弃，请使用 `wp-connector-api::runtime::source::types` 中的 `Tags` 代替。**
+
+  `TagSet` 是一个轻量级 KV 集合，内部使用排序 `SmallVec`（最多 16 项走栈内存）。现已被 `Tags` 替代，后者提供相同功能且 API 设计更优：
 
   ```rust
-  use wp_model_core::model::{DataField, TagSet};
-
+  // 旧方式（已废弃）：
+  use wp_model_core::model::TagSet;
   let mut tags = TagSet::default();
   tags.append("env", "prod");
   tags.set_tag("stage", "sink".into());
-  assert_eq!(tags.get("env"), Some("prod"));
 
-  let mut record = vec![DataField::from_chars("message", "hi")].into();
-  record.items.append(&mut tags.to_tdos());
+  // 新方式（推荐）：
+  use wp_connector_api::runtime::source::types::Tags;
+  let mut tags = Tags::new();
+  tags.set("env", "prod");
+  tags.set("stage", "sink");
   ```
 
 - `LevelFormatAble` / `format_value!`：层级格式化输出。
