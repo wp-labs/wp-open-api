@@ -16,6 +16,7 @@ authors = ["WarpParse Dev Team"]
 # 统一依赖版本，便于各 crate 使用 `workspace = true`
 [workspace.dependencies]
 arcstr = { version = "1", features = ["serde"] }
+smol_str = { version = "0.3", features = ["serde"] }
 anyhow = "1"
 async-trait = "0.1"
 bytes = "1"

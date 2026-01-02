@@ -1,6 +1,6 @@
 use crate::model::{
-    DataType, DateTimeValue, DomainT, EmailT, HexT, IdCardT, IgnoreT, Maker, MobilePhoneT,
-    UrlValue, Value,
+    DataType, DateTimeValue, DomainT, EmailT, FNameStr, HexT, IdCardT, IgnoreT, Maker,
+    MobilePhoneT, UrlValue, Value,
     types::value::{ObjectValue, SymbolValue},
 };
 use arcstr::ArcStr;
@@ -12,7 +12,7 @@ impl<T> Field<T>
 where
     T: Maker<bool>,
 {
-    pub fn from_bool<S: Into<ArcStr>>(name: S, val: bool) -> Self {
+    pub fn from_bool<S: Into<FNameStr>>(name: S, val: bool) -> Self {
         Self::new(DataType::Bool, name.into(), T::make(val))
     }
 }
@@ -21,7 +21,7 @@ impl<T> Field<T>
 where
     T: Maker<ArcStr>,
 {
-    pub fn from_chars<S: Into<ArcStr>>(name: S, val: S) -> Self {
+    pub fn from_chars<N: Into<FNameStr>, V: Into<ArcStr>>(name: N, val: V) -> Self {
         Self::new(DataType::Chars, name.into(), T::make(val.into()))
     }
 }
@@ -29,7 +29,7 @@ impl<T> Field<T>
 where
     T: Maker<Value>,
 {
-    pub fn from_symbol<S: Into<ArcStr>>(name: S, val: S) -> Self {
+    pub fn from_symbol<N: Into<FNameStr>, V: Into<ArcStr>>(name: N, val: V) -> Self {
         let value = SymbolValue::from(val.into());
         Self::new(DataType::Symbol, name.into(), T::make(value.into()))
     }
@@ -39,7 +39,7 @@ impl<T> Field<T>
 where
     T: Maker<i64>,
 {
-    pub fn from_digit<S: Into<ArcStr>>(name: S, val: i64) -> Self {
+    pub fn from_digit<S: Into<FNameStr>>(name: S, val: i64) -> Self {
         Self::new(DataType::Digit, name.into(), T::make(val))
     }
 }
@@ -47,7 +47,7 @@ impl<T> Field<T>
 where
     T: Maker<HexT>,
 {
-    pub fn from_hex<S: Into<ArcStr>>(name: S, val: HexT) -> Self {
+    pub fn from_hex<S: Into<FNameStr>>(name: S, val: HexT) -> Self {
         Self::new(DataType::Hex, name.into(), T::make(val))
     }
 }
@@ -55,7 +55,7 @@ impl<T> Field<T>
 where
     T: Maker<f64>,
 {
-    pub fn from_float<S: Into<ArcStr>>(name: S, val: f64) -> Self {
+    pub fn from_float<S: Into<FNameStr>>(name: S, val: f64) -> Self {
         Self::new(DataType::Float, name.into(), T::make(val))
     }
 }
@@ -63,7 +63,7 @@ impl<T> Field<T>
 where
     T: Maker<IpAddr>,
 {
-    pub fn from_ip<S: Into<ArcStr>>(name: S, ip: IpAddr) -> Self {
+    pub fn from_ip<S: Into<FNameStr>>(name: S, ip: IpAddr) -> Self {
         Self::new(DataType::IP, name.into(), T::make(ip))
     }
 }
@@ -72,7 +72,7 @@ impl<T> Field<T>
 where
     T: Maker<DomainT>,
 {
-    pub fn from_domain<S: Into<ArcStr>, V: Into<ArcStr>>(name: S, domain: V) -> Self {
+    pub fn from_domain<S: Into<FNameStr>, V: Into<ArcStr>>(name: S, domain: V) -> Self {
         Self::new(
             DataType::Domain,
             name.into(),
@@ -85,7 +85,7 @@ impl<T> Field<T>
 where
     T: Maker<UrlValue>,
 {
-    pub fn from_url<S: Into<ArcStr>, V: Into<ArcStr>>(name: S, url: V) -> Self {
+    pub fn from_url<S: Into<FNameStr>, V: Into<ArcStr>>(name: S, url: V) -> Self {
         Self::new(
             DataType::Url,
             name.into(),
@@ -98,7 +98,7 @@ impl<T> Field<T>
 where
     T: Maker<EmailT>,
 {
-    pub fn from_email<S: Into<ArcStr>, V: Into<ArcStr>>(name: S, email: V) -> Self {
+    pub fn from_email<S: Into<FNameStr>, V: Into<ArcStr>>(name: S, email: V) -> Self {
         Self::new(
             DataType::Email,
             name.into(),
@@ -111,7 +111,7 @@ impl<T> Field<T>
 where
     T: Maker<IdCardT>,
 {
-    pub fn from_id_card<S: Into<ArcStr>, V: Into<ArcStr>>(name: S, id_card: V) -> Self {
+    pub fn from_id_card<S: Into<FNameStr>, V: Into<ArcStr>>(name: S, id_card: V) -> Self {
         Self::new(
             DataType::IdCard,
             name.into(),
@@ -124,7 +124,7 @@ impl<T> Field<T>
 where
     T: Maker<MobilePhoneT>,
 {
-    pub fn from_mobile_phone<S: Into<ArcStr>, V: Into<ArcStr>>(name: S, mobile_phone: V) -> Self {
+    pub fn from_mobile_phone<S: Into<FNameStr>, V: Into<ArcStr>>(name: S, mobile_phone: V) -> Self {
         Self::new(
             DataType::MobilePhone,
             name.into(),
@@ -137,7 +137,7 @@ impl<T> Field<T>
 where
     T: Maker<IgnoreT>,
 {
-    pub fn from_ignore<S: Into<ArcStr>>(name: S) -> Self {
+    pub fn from_ignore<S: Into<FNameStr>>(name: S) -> Self {
         Self::new(DataType::Ignore, name.into(), T::make(IgnoreT::default()))
     }
 }
@@ -146,7 +146,7 @@ impl<T> Field<T>
 where
     T: Maker<DateTimeValue>,
 {
-    pub fn from_time<S: Into<ArcStr>>(name: S, val: DateTimeValue) -> Self {
+    pub fn from_time<S: Into<FNameStr>>(name: S, val: DateTimeValue) -> Self {
         Self::new(DataType::Time, name.into(), T::make(val))
     }
 }
@@ -154,7 +154,7 @@ impl<T> Field<T>
 where
     T: Maker<Vec<Field<Value>>>,
 {
-    pub fn from_arr<S: Into<ArcStr>>(name: S, val: Vec<Field<Value>>) -> Self {
+    pub fn from_arr<S: Into<FNameStr>>(name: S, val: Vec<Field<Value>>) -> Self {
         if let Some(f) = val.first() {
             let meta = f.get_meta().to_string();
             Self::new(DataType::Array(meta), name.into(), T::make(val))
@@ -169,7 +169,7 @@ impl<T> Field<T>
 where
     T: Maker<ObjectValue>,
 {
-    pub fn from_obj<S: Into<ArcStr>>(name: S, val: ObjectValue) -> Self {
+    pub fn from_obj<S: Into<FNameStr>>(name: S, val: ObjectValue) -> Self {
         Self::new(DataType::Obj, name.into(), T::make(val))
     }
 }

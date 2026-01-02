@@ -1,6 +1,6 @@
 use crate::model::DataType;
 use crate::model::format::LevelFormatAble;
-use arcstr::ArcStr;
+use crate::model::FNameStr;
 
 use crate::model::Value;
 use crate::traits::AsValueRef;
@@ -13,7 +13,7 @@ use std::sync::Arc;
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Field<T> {
     pub meta: DataType,
-    pub name: ArcStr,
+    pub name: FNameStr,
     pub value: T,
 }
 
@@ -52,7 +52,7 @@ impl<T> From<Field<T>> for Field<Arc<T>> {
 }
 
 impl<T> Field<T> {
-    pub fn new<S: Into<ArcStr>, V: Into<T>>(meta: DataType, name: S, value: V) -> Self {
+    pub fn new<S: Into<FNameStr>, V: Into<T>>(meta: DataType, name: S, value: V) -> Self {
         Self {
             meta,
             name: name.into(),
@@ -60,8 +60,8 @@ impl<T> Field<T> {
         }
     }
 
-    pub fn new_opt(meta: DataType, name: Option<ArcStr>, value: T) -> Self {
-        let name = name.unwrap_or_else(|| ArcStr::from(String::from(&meta)));
+    pub fn new_opt(meta: DataType, name: Option<FNameStr>, value: T) -> Self {
+        let name = name.unwrap_or_else(|| FNameStr::from(String::from(&meta)));
         Field { meta, name, value }
     }
 
@@ -75,13 +75,13 @@ impl<T> Field<T> {
         &self.meta
     }
 
-    pub fn set_name<S: Into<ArcStr>>(&mut self, name: S) {
+    pub fn set_name<S: Into<FNameStr>>(&mut self, name: S) {
         self.name = name.into()
     }
 }
 
 impl Field<Value> {
-    pub fn from_shared_chars<S: Into<ArcStr>>(name: S, val: ArcStr) -> Self {
+    pub fn from_shared_chars<S: Into<FNameStr>>(name: S, val: arcstr::ArcStr) -> Self {
         Self::new(DataType::Chars, name.into(), Value::Chars(val))
     }
 
@@ -89,7 +89,7 @@ impl Field<Value> {
         self.value.as_str()
     }
 
-    pub fn get_chars_mut(&mut self) -> Option<&mut ArcStr> {
+    pub fn get_chars_mut(&mut self) -> Option<&mut arcstr::ArcStr> {
         self.value.ensure_owned_chars()
     }
 }
@@ -139,6 +139,7 @@ where
 mod tests {
     use super::*;
     use crate::model::DataField;
+    use arcstr::ArcStr;
 
     // ========== Field creation tests ==========
 

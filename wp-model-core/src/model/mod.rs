@@ -18,6 +18,11 @@ pub use types::meta::{DataType, MetaErr};
 pub use types::value::{DateTimeValue, DomainT, EmailT, IdCardT, Maker, MobilePhoneT, UrlValue};
 pub use types::value::{DigitValue, FloatValue, HexT, IgnoreT, IpNetValue};
 
+/// 字段名称类型
+/// 当前实现：SmolStr（小字符串优化，≤22字节内联存储）
+/// 未来可以根据性能测试调整为其他实现
+pub type FNameStr = smol_str::SmolStr;
+
 pub type DataField = Field<Value>;
 //VBean<Value>
 pub type DataRecord = Record<DataField>;

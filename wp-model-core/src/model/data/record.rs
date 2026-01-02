@@ -1,6 +1,6 @@
 use crate::model::Maker;
 use crate::model::format::LevelFormatAble;
-use crate::model::{DataType, Value};
+use crate::model::{DataType, FNameStr, Value};
 use crate::traits::AsValueRef;
 use arcstr::ArcStr;
 use serde_derive::{Deserialize, Serialize};
@@ -20,9 +20,9 @@ pub trait RecordItem {
 
 /// 为 Record 生成字段所需的工厂方法
 pub trait RecordItemFactory {
-    fn from_digit<S: Into<ArcStr>>(name: S, val: i64) -> Self;
-    fn from_ip<S: Into<ArcStr>>(name: S, ip: IpAddr) -> Self;
-    fn from_chars<S: Into<ArcStr>>(name: S, val: S) -> Self;
+    fn from_digit<S: Into<FNameStr>>(name: S, val: i64) -> Self;
+    fn from_ip<S: Into<FNameStr>>(name: S, ip: IpAddr) -> Self;
+    fn from_chars<N: Into<FNameStr>, Val: Into<ArcStr>>(name: N, val: Val) -> Self;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -156,15 +156,15 @@ impl<V> RecordItemFactory for Field<V>
 where
     V: Maker<i64> + Maker<ArcStr> + Maker<IpAddr>,
 {
-    fn from_digit<S: Into<ArcStr>>(name: S, val: i64) -> Self {
+    fn from_digit<S: Into<FNameStr>>(name: S, val: i64) -> Self {
         Field::from_digit(name, val)
     }
 
-    fn from_ip<S: Into<ArcStr>>(name: S, ip: IpAddr) -> Self {
+    fn from_ip<S: Into<FNameStr>>(name: S, ip: IpAddr) -> Self {
         Field::from_ip(name, ip)
     }
 
-    fn from_chars<S: Into<ArcStr>>(name: S, val: S) -> Self {
+    fn from_chars<N: Into<FNameStr>, Val: Into<ArcStr>>(name: N, val: Val) -> Self {
         Field::from_chars(name, val)
     }
 }
