@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, sync::Arc};
 use wp_model_core::model::DataRecord;
 
@@ -172,7 +173,7 @@ impl SinkHandle {
 ///
 /// Contains the fully resolved configuration for a sink instance,
 /// with all inheritance and defaults already applied.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct ResolvedSinkSpec {
     /// Sink group name for routing and management
     pub group: String,

@@ -46,7 +46,7 @@ impl DataSource for MemorySource {
 
         let event = SourceEvent::new(
             self.cursor as u64,
-            Arc::new(self.name.clone()),
+            self.name.as_str(),
             RawData::from_string(&self.events[self.cursor]),
             Arc::new(Tags::default()),
         );
@@ -58,7 +58,7 @@ impl DataSource for MemorySource {
         if self.cursor < self.events.len() {
             let event = SourceEvent::new(
                 self.cursor as u64,
-                Arc::new(self.name.clone()),
+                self.name.as_str(),
                 RawData::from_string(&self.events[self.cursor]),
                 Arc::new(Tags::default()),
             );

@@ -1,3 +1,4 @@
+use smol_str::SmolStr;
 use std::net::IpAddr;
 use std::sync::Arc;
 use wp_parse_api::RawData;
@@ -10,7 +11,7 @@ pub type EventPreHook = Arc<dyn Fn(&mut SourceEvent) + Send + Sync + 'static>;
 #[derive(Clone)]
 pub struct SourceEvent {
     pub event_id: u64,
-    pub src_key: Arc<String>,
+    pub src_key: SmolStr,
     pub payload: RawData,
     pub tags: Arc<Tags>,
     pub ups_ip: Option<IpAddr>,
@@ -24,10 +25,15 @@ pub type SourceBatch = Vec<SourceEvent>;
 
 impl SourceEvent {
     /// 构造一个最小帧
-    pub fn new(event_id: u64, src_key: Arc<String>, payload: RawData, tags: Arc<Tags>) -> Self {
+    pub fn new(
+        event_id: u64,
+        src_key: impl Into<SmolStr>,
+        payload: RawData,
+        tags: Arc<Tags>,
+    ) -> Self {
         Self {
             event_id,
-            src_key,
+            src_key: src_key.into(),
             payload,
             tags,
             ups_ip: None,
@@ -64,17 +70,11 @@ mod tests {
     #[test]
     fn source_event_new_sets_defaults() {
         let tags = Arc::new(Tags::default());
-        let src_key = Arc::new(String::from("main"));
-        let event = SourceEvent::new(
-            7,
-            src_key.clone(),
-            RawData::from_string("payload"),
-            tags.clone(),
-        );
+        let event = SourceEvent::new(7, "main", RawData::from_string("payload"), tags.clone());
 
         assert_eq!(event.event_id, 7);
+        assert_eq!(event.src_key.as_str(), "main");
         assert!(matches!(event.payload, RawData::String(_)));
-        assert!(Arc::ptr_eq(&event.src_key, &src_key));
         assert!(Arc::ptr_eq(&event.tags, &tags));
         assert!(event.ups_ip.is_none());
         assert!(event.preproc.is_none());
@@ -84,7 +84,7 @@ mod tests {
     fn debug_impl_reports_summary() {
         let event = SourceEvent::new(
             1,
-            Arc::new(String::from("key")),
+            "key",
             RawData::from_string("hello"),
             Arc::new(Tags::default()),
         );

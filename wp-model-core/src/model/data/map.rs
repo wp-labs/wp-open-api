@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::model::Value;
-use arcstr::ArcStr;
+use smol_str::SmolStr;
 
 use super::field::Field;
 
-pub type ObjectMap = BTreeMap<ArcStr, Field<Value>>;
+pub type ObjectMap = BTreeMap<SmolStr, Field<Value>>;

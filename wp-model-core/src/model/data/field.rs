@@ -1,6 +1,6 @@
 use crate::model::DataType;
 use crate::model::format::LevelFormatAble;
-use crate::model::FNameStr;
+use crate::model::{FNameStr, FValueStr};
 
 use crate::model::Value;
 use crate::traits::AsValueRef;
@@ -81,7 +81,7 @@ impl<T> Field<T> {
 }
 
 impl Field<Value> {
-    pub fn from_shared_chars<S: Into<FNameStr>>(name: S, val: arcstr::ArcStr) -> Self {
+    pub fn from_shared_chars<S: Into<FNameStr>>(name: S, val: FValueStr) -> Self {
         Self::new(DataType::Chars, name.into(), Value::Chars(val))
     }
 
@@ -89,7 +89,7 @@ impl Field<Value> {
         self.value.as_str()
     }
 
-    pub fn get_chars_mut(&mut self) -> Option<&mut arcstr::ArcStr> {
+    pub fn get_chars_mut(&mut self) -> Option<&mut FValueStr> {
         self.value.ensure_owned_chars()
     }
 }
@@ -138,8 +138,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::DataField;
-    use arcstr::ArcStr;
+    use crate::model::{DataField, FValueStr};
 
     // ========== Field creation tests ==========
 
@@ -228,8 +227,8 @@ mod tests {
 
     #[test]
     fn test_field_from_shared_chars() {
-        let arc = ArcStr::from("hello");
-        let field: DataField = Field::from_shared_chars("msg", arc.clone());
+        let s = FValueStr::from("hello");
+        let field: DataField = Field::from_shared_chars("msg", s.clone());
         assert_eq!(field.get_name(), "msg");
         assert_eq!(field.get_meta(), &DataType::Chars);
         assert!(matches!(field.value, Value::Chars(_)));
@@ -238,12 +237,12 @@ mod tests {
 
     #[test]
     fn test_field_get_chars_mut() {
-        let arc = ArcStr::from("foo");
-        let mut field: DataField = Field::from_shared_chars("msg", arc);
+        let s = FValueStr::from("foo");
+        let mut field: DataField = Field::from_shared_chars("msg", s);
         {
             let value = field.get_chars_mut().expect("mutable");
-            // ArcStr is immutable, so we replace it with a new one
-            *value = ArcStr::from(format!("{}-bar", value.as_str()));
+            // SmolStr is immutable, so we replace it with a new one
+            *value = FValueStr::from(format!("{}-bar", value.as_str()));
         }
         assert!(matches!(field.value, Value::Chars(_)));
         assert_eq!(field.get_chars(), Some("foo-bar"));

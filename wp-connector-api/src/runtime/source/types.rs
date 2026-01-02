@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
+use smol_str::SmolStr;
 use std::borrow::Cow;
 use std::sync::Arc;
 
@@ -70,7 +71,7 @@ pub type CtrlRx = async_broadcast::Receiver<ControlEvent>;
 ///     async fn receive(&mut self) -> SourceResult<SourceBatch> {
 ///         // Pull data from upstream
 ///         let data = self.client.poll().await?;
-///         Ok(vec![SourceEvent::new(0, Arc::new("my-source".into()), data, Arc::new(Tags::new()))])
+///         Ok(vec![SourceEvent::new(0, "my-source", data, Arc::new(Tags::new()))])
 ///     }
 ///
 ///     fn try_receive(&mut self) -> Option<SourceBatch> { None }
@@ -155,6 +156,9 @@ const INLINE_TAG_CAPACITY: usize = 16;
 /// avoiding heap allocation for typical use cases. Keys are kept sorted
 /// for efficient binary search lookup.
 ///
+/// Both keys and values use `SmolStr` for small string optimization,
+/// providing zero-allocation storage for strings ≤22 bytes.
+///
 /// # Example
 /// ```ignore
 /// let mut tags = Tags::new();
@@ -166,7 +170,7 @@ const INLINE_TAG_CAPACITY: usize = 16;
 /// ```
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub struct Tags {
-    item: SmallVec<[(String, String); INLINE_TAG_CAPACITY]>,
+    item: SmallVec<[(SmolStr, SmolStr); INLINE_TAG_CAPACITY]>,
 }
 
 impl Tags {
@@ -180,7 +184,7 @@ impl Tags {
     /// Set a tag value. If the key exists, the value is updated.
     ///
     /// Keys are kept sorted for efficient lookup.
-    pub fn set(&mut self, key: impl Into<String>, value: impl Into<String>) {
+    pub fn set(&mut self, key: impl Into<SmolStr>, value: impl Into<SmolStr>) {
         let key = key.into();
         let value = value.into();
         match self
@@ -217,7 +221,7 @@ impl Tags {
     /// Remove a tag by key.
     ///
     /// Returns the removed value if the key existed.
-    pub fn remove(&mut self, key: &str) -> Option<String> {
+    pub fn remove(&mut self, key: &str) -> Option<SmolStr> {
         match self
             .item
             .binary_search_by(|(existing, _)| existing.as_str().cmp(key))
@@ -263,7 +267,7 @@ impl Tags {
     /// Set a tag value.
     #[deprecated(since = "0.6.0", note = "Use `set()` instead")]
     pub fn set_tag(&mut self, key: &str, value: String) {
-        self.set(key.to_string(), value);
+        self.set(SmolStr::from(key), SmolStr::from(value));
     }
 }
 
@@ -321,7 +325,7 @@ mod tests {
 
         // Remove existing key
         let removed = tags.remove("b");
-        assert_eq!(removed, Some("2".to_string()));
+        assert_eq!(removed, Some(SmolStr::from("2")));
         assert_eq!(tags.len(), 2);
         assert!(!tags.contains_key("b"));
 

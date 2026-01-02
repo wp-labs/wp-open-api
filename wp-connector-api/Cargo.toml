@@ -22,6 +22,7 @@ thiserror = "~2.0"
 orion-error= "0.5.5"
 derive_more = "2.1"
 smallvec = { workspace = true }
+smol_str = { workspace = true }
 
 [features]
 test_helpers = []

@@ -1,8 +1,7 @@
 use crate::model::Maker;
 use crate::model::format::LevelFormatAble;
-use crate::model::{DataType, FNameStr, Value};
+use crate::model::{DataType, FNameStr, FValueStr, Value};
 use crate::traits::AsValueRef;
-use arcstr::ArcStr;
 use serde_derive::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
@@ -22,7 +21,7 @@ pub trait RecordItem {
 pub trait RecordItemFactory {
     fn from_digit<S: Into<FNameStr>>(name: S, val: i64) -> Self;
     fn from_ip<S: Into<FNameStr>>(name: S, ip: IpAddr) -> Self;
-    fn from_chars<N: Into<FNameStr>, Val: Into<ArcStr>>(name: N, val: Val) -> Self;
+    fn from_chars<N: Into<FNameStr>, Val: Into<FValueStr>>(name: N, val: Val) -> Self;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -154,7 +153,7 @@ where
 
 impl<V> RecordItemFactory for Field<V>
 where
-    V: Maker<i64> + Maker<ArcStr> + Maker<IpAddr>,
+    V: Maker<i64> + Maker<FValueStr> + Maker<IpAddr>,
 {
     fn from_digit<S: Into<FNameStr>>(name: S, val: i64) -> Self {
         Field::from_digit(name, val)
@@ -164,7 +163,7 @@ where
         Field::from_ip(name, ip)
     }
 
-    fn from_chars<N: Into<FNameStr>, Val: Into<ArcStr>>(name: N, val: Val) -> Self {
+    fn from_chars<N: Into<FNameStr>, Val: Into<FValueStr>>(name: N, val: Val) -> Self {
         Field::from_chars(name, val)
     }
 }

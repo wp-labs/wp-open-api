@@ -3,9 +3,10 @@ mod custom;
 mod network;
 mod primitive;
 use crate::model::DataField;
+use crate::model::FValueStr;
 use crate::model::data::field::Field;
 use crate::traits::AsValueRef;
-use arcstr::ArcStr;
+use smol_str::SmolStr;
 use std::fmt::{Debug, Display, Formatter};
 use std::net::IpAddr;
 use std::rc::Rc;
@@ -17,13 +18,13 @@ pub use network::{DomainT, EmailT, IpNetValue, UrlValue};
 pub use primitive::{DateTimeValue, DigitValue, FloatValue, HexT};
 use serde::{Deserialize, Serialize};
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-pub struct SymbolValue(pub ArcStr);
+pub struct SymbolValue(pub SmolStr);
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
 pub enum Value {
     // 基本类型
     Null,
     Bool(bool),
-    Chars(ArcStr),
+    Chars(FValueStr),
     Float(FloatValue),
     Digit(DigitValue),
 
@@ -42,7 +43,7 @@ pub enum Value {
     //Obj(BTreeMap<String, Field<Value>>),
     Obj(ObjectValue),
     Array(Vec<Field<Value>>),
-    Symbol(ArcStr),
+    Symbol(SmolStr),
     Ignore(IgnoreT),
 }
 
@@ -125,26 +126,26 @@ impl From<bool> for Value {
         Value::Bool(value)
     }
 }
-impl From<ArcStr> for Value {
-    fn from(value: ArcStr) -> Self {
+impl From<FValueStr> for Value {
+    fn from(value: FValueStr) -> Self {
         Self::Chars(value)
     }
 }
 
 impl From<String> for SymbolValue {
     fn from(value: String) -> Self {
-        SymbolValue(ArcStr::from(value))
+        SymbolValue(SmolStr::from(value))
     }
 }
 
 impl From<&str> for SymbolValue {
     fn from(value: &str) -> Self {
-        SymbolValue(ArcStr::from(value))
+        SymbolValue(SmolStr::from(value))
     }
 }
 
-impl From<ArcStr> for SymbolValue {
-    fn from(value: ArcStr) -> Self {
+impl From<SmolStr> for SymbolValue {
+    fn from(value: SmolStr) -> Self {
         SymbolValue(value)
     }
 }
@@ -290,26 +291,26 @@ impl Value {
         }
     }
 
-    /// 返回一个可写的 `ArcStr`。
-    pub fn ensure_owned_chars(&mut self) -> Option<&mut ArcStr> {
+    /// 返回一个可写的 `FValueStr`。
+    pub fn ensure_owned_chars(&mut self) -> Option<&mut FValueStr> {
         match self {
             Value::Chars(s) => Some(s),
             _ => None,
         }
     }
 
-    /// Chars 已经是共享存储，此方法保留用于兼容性。
+    /// Chars 已经是 SmolStr，此方法保留用于兼容性。
     pub fn into_shared_chars(self) -> Self {
         self
     }
 
-    /// Chars 已经是共享存储，此方法保留用于兼容性。
+    /// Chars 已经是 SmolStr，此方法保留用于兼容性。
     pub fn make_shared_chars(&mut self) {
-        // No-op: Chars is already ArcStr
+        // No-op: Chars is already SmolStr
     }
 
     fn ensure_chars_unique(&mut self) {
-        // No-op: ArcStr handles uniqueness internally
+        // No-op: SmolStr handles uniqueness internally
     }
 }
 
@@ -318,7 +319,7 @@ impl Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use arcstr::ArcStr;
+    use smol_str::SmolStr;
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
     #[test]
@@ -327,13 +328,13 @@ mod tests {
         let v: Value = true.into();
         assert_eq!(v, Value::Bool(true));
 
-        // ArcStr
-        let v: Value = ArcStr::from("hello").into();
-        assert_eq!(v, Value::Chars(ArcStr::from("hello")));
+        // FValueStr
+        let v: Value = FValueStr::from("hello").into();
+        assert_eq!(v, Value::Chars(FValueStr::from("hello")));
 
         // &str
         let v: Value = "world".into();
-        assert_eq!(v, Value::Chars(ArcStr::from("world")));
+        assert_eq!(v, Value::Chars(FValueStr::from("world")));
 
         // i64
         let v: Value = 42i64.into();
@@ -371,10 +372,10 @@ mod tests {
         assert_eq!(format!("{}", Value::Null), "NULL");
         assert_eq!(format!("{}", Value::Bool(true)), "true");
         assert_eq!(format!("{}", Value::Bool(false)), "false");
-        assert_eq!(format!("{}", Value::Chars(ArcStr::from("test"))), "test");
+        assert_eq!(format!("{}", Value::Chars(FValueStr::from("test"))), "test");
         assert_eq!(format!("{}", Value::Digit(123)), "123");
         assert_eq!(format!("{}", Value::Float(1.5)), "1.5");
-        assert_eq!(format!("{}", Value::Symbol(ArcStr::from("sym"))), "sym");
+        assert_eq!(format!("{}", Value::Symbol(SmolStr::from("sym"))), "sym");
         assert_eq!(format!("{}", Value::Ignore(IgnoreT::default())), "");
     }
 
@@ -389,8 +390,8 @@ mod tests {
 
     #[test]
     fn test_arcstr_roundtrip() {
-        let arc = ArcStr::from("shared-value");
-        let v: Value = arc.clone().into();
+        let s = FValueStr::from("shared-value");
+        let v: Value = s.clone().into();
         assert!(matches!(v, Value::Chars(_)));
         assert_eq!(v.as_str(), Some("shared-value"));
 
@@ -401,7 +402,7 @@ mod tests {
 
     #[test]
     fn test_into_shared_chars() {
-        let original = Value::from(ArcStr::from("hello"));
+        let original = Value::from(FValueStr::from("hello"));
         let shared = original.into_shared_chars();
         assert!(matches!(shared, Value::Chars(_)));
         assert_eq!(shared.as_str(), Some("hello"));
@@ -409,9 +410,9 @@ mod tests {
 
     #[test]
     fn test_as_value_mutref_chars() {
-        let arc = ArcStr::from("abc");
-        let mut v = Value::Chars(arc.clone());
-        // Chars is already ArcStr, so it remains Chars
+        let s = FValueStr::from("abc");
+        let mut v = Value::Chars(s.clone());
+        // Chars is already SmolStr, so it remains Chars
         assert!(matches!(v.as_value_mutref(), Value::Chars(_)));
         assert_eq!(v.as_str(), Some("abc"));
     }
@@ -427,8 +428,8 @@ mod tests {
 
     #[test]
     fn test_as_value_ref_rc() {
-        let v = Rc::new(Value::Chars(ArcStr::from("rc")));
-        assert_eq!(v.as_value_ref(), &Value::Chars(ArcStr::from("rc")));
+        let v = Rc::new(Value::Chars(FValueStr::from("rc")));
+        assert_eq!(v.as_value_ref(), &Value::Chars(FValueStr::from("rc")));
     }
 
     #[test]
@@ -442,8 +443,8 @@ mod tests {
         let v: Value = Maker::make(42i64);
         assert_eq!(v, Value::Digit(42));
 
-        let rc: Rc<Value> = Maker::make(ArcStr::from("hello"));
-        assert_eq!(*rc, Value::Chars(ArcStr::from("hello")));
+        let rc: Rc<Value> = Maker::make(FValueStr::from("hello"));
+        assert_eq!(*rc, Value::Chars(FValueStr::from("hello")));
     }
 
     #[test]

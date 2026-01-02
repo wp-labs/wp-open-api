@@ -23,6 +23,11 @@ pub use types::value::{DigitValue, FloatValue, HexT, IgnoreT, IpNetValue};
 /// 未来可以根据性能测试调整为其他实现
 pub type FNameStr = smol_str::SmolStr;
 
+/// 字段值字符串类型
+/// 当前实现：SmolStr（小字符串优化，≤22字节内联存储）
+/// 用于 Value::Chars，提供高效的短字符串存储
+pub type FValueStr = smol_str::SmolStr;
+
 pub type DataField = Field<Value>;
 //VBean<Value>
 pub type DataRecord = Record<DataField>;

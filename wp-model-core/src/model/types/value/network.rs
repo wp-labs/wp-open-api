@@ -1,4 +1,4 @@
-use arcstr::ArcStr;
+use smol_str::SmolStr;
 use std::{
     fmt::{Display, Formatter},
     net::IpAddr,
@@ -39,21 +39,21 @@ impl Display for IpNetValue {
 // Comparison impl moved to orion_exp adapters.
 
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-pub struct DomainT(pub ArcStr);
+pub struct DomainT(pub SmolStr);
 impl Display for DomainT {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-pub struct UrlValue(pub ArcStr);
+pub struct UrlValue(pub SmolStr);
 impl Display for UrlValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-pub struct EmailT(pub ArcStr);
+pub struct EmailT(pub SmolStr);
 impl Display for EmailT {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)

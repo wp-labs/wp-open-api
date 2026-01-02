@@ -1,9 +1,9 @@
 use crate::model::{
-    DataType, DateTimeValue, DomainT, EmailT, FNameStr, HexT, IdCardT, IgnoreT, Maker,
+    DataType, DateTimeValue, DomainT, EmailT, FNameStr, FValueStr, HexT, IdCardT, IgnoreT, Maker,
     MobilePhoneT, UrlValue, Value,
     types::value::{ObjectValue, SymbolValue},
 };
-use arcstr::ArcStr;
+use smol_str::SmolStr;
 use std::net::IpAddr;
 
 use super::Field;
@@ -19,9 +19,9 @@ where
 
 impl<T> Field<T>
 where
-    T: Maker<ArcStr>,
+    T: Maker<FValueStr>,
 {
-    pub fn from_chars<N: Into<FNameStr>, V: Into<ArcStr>>(name: N, val: V) -> Self {
+    pub fn from_chars<N: Into<FNameStr>, V: Into<FValueStr>>(name: N, val: V) -> Self {
         Self::new(DataType::Chars, name.into(), T::make(val.into()))
     }
 }
@@ -29,7 +29,7 @@ impl<T> Field<T>
 where
     T: Maker<Value>,
 {
-    pub fn from_symbol<N: Into<FNameStr>, V: Into<ArcStr>>(name: N, val: V) -> Self {
+    pub fn from_symbol<N: Into<FNameStr>, V: Into<SmolStr>>(name: N, val: V) -> Self {
         let value = SymbolValue::from(val.into());
         Self::new(DataType::Symbol, name.into(), T::make(value.into()))
     }
@@ -72,11 +72,11 @@ impl<T> Field<T>
 where
     T: Maker<DomainT>,
 {
-    pub fn from_domain<S: Into<FNameStr>, V: Into<ArcStr>>(name: S, domain: V) -> Self {
+    pub fn from_domain<S: Into<FNameStr>, V: Into<SmolStr>>(name: S, domain: V) -> Self {
         Self::new(
             DataType::Domain,
             name.into(),
-            T::make(DomainT(ArcStr::from(domain.into()))),
+            T::make(DomainT(domain.into())),
         )
     }
 }
@@ -85,12 +85,8 @@ impl<T> Field<T>
 where
     T: Maker<UrlValue>,
 {
-    pub fn from_url<S: Into<FNameStr>, V: Into<ArcStr>>(name: S, url: V) -> Self {
-        Self::new(
-            DataType::Url,
-            name.into(),
-            T::make(UrlValue(ArcStr::from(url.into()))),
-        )
+    pub fn from_url<S: Into<FNameStr>, V: Into<SmolStr>>(name: S, url: V) -> Self {
+        Self::new(DataType::Url, name.into(), T::make(UrlValue(url.into())))
     }
 }
 
@@ -98,12 +94,8 @@ impl<T> Field<T>
 where
     T: Maker<EmailT>,
 {
-    pub fn from_email<S: Into<FNameStr>, V: Into<ArcStr>>(name: S, email: V) -> Self {
-        Self::new(
-            DataType::Email,
-            name.into(),
-            T::make(EmailT(ArcStr::from(email.into()))),
-        )
+    pub fn from_email<S: Into<FNameStr>, V: Into<SmolStr>>(name: S, email: V) -> Self {
+        Self::new(DataType::Email, name.into(), T::make(EmailT(email.into())))
     }
 }
 
@@ -111,11 +103,11 @@ impl<T> Field<T>
 where
     T: Maker<IdCardT>,
 {
-    pub fn from_id_card<S: Into<FNameStr>, V: Into<ArcStr>>(name: S, id_card: V) -> Self {
+    pub fn from_id_card<S: Into<FNameStr>, V: Into<SmolStr>>(name: S, id_card: V) -> Self {
         Self::new(
             DataType::IdCard,
             name.into(),
-            T::make(IdCardT(ArcStr::from(id_card.into()))),
+            T::make(IdCardT(id_card.into())),
         )
     }
 }
@@ -124,11 +116,14 @@ impl<T> Field<T>
 where
     T: Maker<MobilePhoneT>,
 {
-    pub fn from_mobile_phone<S: Into<FNameStr>, V: Into<ArcStr>>(name: S, mobile_phone: V) -> Self {
+    pub fn from_mobile_phone<S: Into<FNameStr>, V: Into<SmolStr>>(
+        name: S,
+        mobile_phone: V,
+    ) -> Self {
         Self::new(
             DataType::MobilePhone,
             name.into(),
-            T::make(MobilePhoneT(ArcStr::from(mobile_phone.into()))),
+            T::make(MobilePhoneT(mobile_phone.into())),
         )
     }
 }
@@ -225,9 +220,9 @@ impl Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::DataField;
-    use arcstr::ArcStr;
+    use crate::model::{DataField, FValueStr};
     use chrono::NaiveDateTime;
+    use smol_str::SmolStr;
     use std::net::{IpAddr, Ipv4Addr};
 
     // ========== Field factory method tests ==========
@@ -245,7 +240,7 @@ mod tests {
         let field: DataField = Field::from_chars("message", "hello");
         assert_eq!(field.get_name(), "message");
         assert_eq!(field.meta, DataType::Chars);
-        assert_eq!(field.value, Value::Chars(ArcStr::from("hello")));
+        assert_eq!(field.value, Value::Chars(FValueStr::from("hello")));
     }
 
     #[test]
@@ -253,7 +248,7 @@ mod tests {
         let field: DataField = Field::from_symbol("status", "OK");
         assert_eq!(field.get_name(), "status");
         assert_eq!(field.meta, DataType::Symbol);
-        assert_eq!(field.value, Value::Symbol(ArcStr::from("OK")));
+        assert_eq!(field.value, Value::Symbol(SmolStr::from("OK")));
     }
 
     #[test]
@@ -383,8 +378,8 @@ mod tests {
     fn test_value_tag() {
         assert_eq!(Value::Null.tag(), "Null");
         assert_eq!(Value::Bool(true).tag(), "Bool");
-        assert_eq!(Value::Chars(ArcStr::from("x")).tag(), "Chars");
-        assert_eq!(Value::Symbol(ArcStr::from("x")).tag(), "Symbol");
+        assert_eq!(Value::Chars(FValueStr::from("x")).tag(), "Chars");
+        assert_eq!(Value::Symbol(SmolStr::from("x")).tag(), "Symbol");
         assert_eq!(Value::Digit(1).tag(), "Digit");
         assert_eq!(Value::Float(1.0).tag(), "Float");
         assert_eq!(Value::Hex(HexT(0)).tag(), "Hex");
@@ -427,8 +422,8 @@ mod tests {
     #[test]
     fn test_is_empty_string_types() {
         // Empty strings
-        assert!(Value::Chars(ArcStr::from("")).is_empty());
-        assert!(Value::Symbol(ArcStr::from("")).is_empty());
+        assert!(Value::Chars(FValueStr::from("")).is_empty());
+        assert!(Value::Symbol(SmolStr::from("")).is_empty());
         assert!(Value::Domain(DomainT("".into())).is_empty());
         assert!(Value::Url(UrlValue("".into())).is_empty());
         assert!(Value::Email(EmailT("".into())).is_empty());
@@ -436,8 +431,8 @@ mod tests {
         assert!(Value::MobilePhone(MobilePhoneT("".into())).is_empty());
 
         // Non-empty strings
-        assert!(!Value::Chars(ArcStr::from("x")).is_empty());
-        assert!(!Value::Symbol(ArcStr::from("x")).is_empty());
+        assert!(!Value::Chars(FValueStr::from("x")).is_empty());
+        assert!(!Value::Symbol(SmolStr::from("x")).is_empty());
         assert!(!Value::Domain(DomainT("x".into())).is_empty());
         assert!(!Value::Url(UrlValue("x".into())).is_empty());
         assert!(!Value::Email(EmailT("x".into())).is_empty());

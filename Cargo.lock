@@ -684,7 +684,7 @@ checksum = "21a0236b59786fed61e2a80582dd500fe61f18b5dca67a4a067d0bc9039339cf"
 
 [[package]]
 name = "wp-connector-api"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "async-broadcast",
@@ -695,6 +695,7 @@ dependencies = [
  "serde",
  "serde_json",
  "smallvec",
+ "smol_str",
  "thiserror",
  "tokio",
  "toml",
@@ -704,7 +705,7 @@ dependencies = [
 
 [[package]]
 name = "wp-model-core"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "arcstr",
  "chrono",
@@ -720,7 +721,7 @@ dependencies = [
 
 [[package]]
 name = "wp-parse-api"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "bytes",
  "derive_more",
